@@ -21,7 +21,8 @@ public partial class ChessSquareElement : UserControl
         bishop,
         rook,
         queen,
-        king
+        king,
+        none
     }
     
     private Color currentColor;
@@ -45,6 +46,8 @@ public partial class ChessSquareElement : UserControl
             SetPieceImage(currentPiece);
         }
     }
+
+    public string Coordinate { get; set; }
     
     private Piece currentPiece;
     public Piece CurrentPiece
@@ -83,5 +86,7 @@ public partial class ChessSquareElement : UserControl
         {
             PieceImageControl.Source = new Bitmap($"Images/ChessPieces/{imageName}");
         }
+        
+        PieceImageControl.IsVisible = imageName != null;
     }
 }
