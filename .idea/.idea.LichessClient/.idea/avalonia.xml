@@ -4,8 +4,11 @@
     <option name="projectPerEditor">
       <map>
         <entry key="Views/Authorization.axaml" value="LichessClient.csproj" />
+        <entry key="Views/ChessBoard.axaml" value="LichessClient.csproj" />
+        <entry key="Views/ChessSquareElement.axaml" value="LichessClient.csproj" />
         <entry key="Views/Home.axaml" value="LichessClient.csproj" />
         <entry key="Views/MainWindow.axaml" value="LichessClient.csproj" />
+        <entry key="Views/Window1.axaml" value="LichessClient.csproj" />
       </map>
     </option>
   </component>

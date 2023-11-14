@@ -11,6 +11,7 @@
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
         <AvaloniaResource Remove="ViewModels\Authentication\**" />
+        <AvaloniaResource Remove="Views\Images\**" />
     </ItemGroup>
 
 
@@ -30,25 +31,44 @@
 
     <ItemGroup>
       <AvaloniaXaml Remove="ViewModels\Authentication\**" />
+      <AvaloniaXaml Remove="Views\Window1.axaml" />
+      <AvaloniaXaml Remove="Views\Images\**" />
     </ItemGroup>
 
 
     <ItemGroup>
       <Compile Remove="ViewModels\Authentication\**" />
+      <Compile Remove="Views\Window1.axaml.cs" />
+      <Compile Remove="Views\Images\**" />
     </ItemGroup>
 
 
     <ItemGroup>
       <EmbeddedResource Remove="ViewModels\Authentication\**" />
+      <EmbeddedResource Remove="Views\Images\**" />
     </ItemGroup>
 
 
     <ItemGroup>
       <AdditionalFiles Remove="ViewModels\Authentication\**" />
+      <AdditionalFiles Remove="Views\Images\**" />
     </ItemGroup>
 
 
     <ItemGroup>
       <None Remove="ViewModels\Authentication\**" />
+      <None Remove="Views\Images\**" />
     </ItemGroup>
+
+
+    <ItemGroup>
+      <Folder Include="Images\ChessPieces\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="Images\ChessPieces\*.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
 </Project>

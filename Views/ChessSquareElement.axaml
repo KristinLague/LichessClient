@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="48" d:DesignHeight="48"
+             x:Class="LichessClient.Views.ChessSquareElement">
+    <Border x:Name="SquareBorder" Width="48" Height="48" Background="Transparent">
+        <Image x:Name="PieceImageControl" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Border>
+
+    </UserControl>
