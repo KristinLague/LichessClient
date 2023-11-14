@@ -1,0 +1,30 @@
+﻿<Properties StartupConfiguration="{4A5D41DD-68DC-4D0A-9B03-2870768D557C}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Views/MainWindow.axaml">
+    <Files>
+      <File FileName="Views/MainWindow.axaml" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="LichessClient" expanded="True">
+            <Node name="LichessClient" expanded="True">
+              <Node name="Assets" expanded="True" />
+              <Node name="Models" expanded="True" />
+              <Node name="ViewModels" expanded="True" />
+              <Node name="Views" expanded="True">
+                <Node name="MainWindow.axaml" selected="True" />
+              </Node>
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+  <MonoDevelop.Ide.ItemProperties.LichessClient PreferredExecutionTarget="MonoDevelop.Default" />
+</Properties>
