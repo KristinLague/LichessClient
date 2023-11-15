@@ -22,9 +22,6 @@ public class AuthorizationProcess
     }
     
     private static event AuthEventHandler s_AuthCompleted;
-    private const string k_serviceName = "LichessOAuthTokenService";
-    private const string k_accountName = "LichessClient";
-    
     private static string s_codeChallenge;
     private static string s_codeVerifier;
 
@@ -35,7 +32,7 @@ public class AuthorizationProcess
     }
     public static bool HasToken()
     {
-        return !string.IsNullOrEmpty(KeychainHelper.GetTokenFromKeychain(k_serviceName, k_accountName));
+        return !string.IsNullOrEmpty(KeychainHelper.GetTokenFromKeychain());
     }
     public void StartAuthentication()
     {
@@ -85,7 +82,7 @@ public class AuthorizationProcess
                 var tokenResponse = await ExchangeAuthorizationCodeForToken(code);
                 //Store token using KeyChain on MacOS
                 //TODO: Add support for Windows and Linux to store tokens
-                KeychainHelper.AddTokenToKeychain(k_serviceName, k_accountName, tokenResponse.access_token);
+                KeychainHelper.AddTokenToKeychain(tokenResponse.access_token);
                 AuthCompleted(true);
             }
         }

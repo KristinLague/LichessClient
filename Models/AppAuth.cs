@@ -9,6 +9,7 @@ public abstract class AppAuth
     public const string redirectUri = "http://localhost:8080/lichess/oauth2/";
     public const string authorizationEndpoint = "https://lichess.org/oauth/";
     public const string tokenEndpoint = "https://lichess.org/api/token";
+    public const string profileEndpoint = "https://lichess.org/api/account";
 }
 
 [Serializable]
