@@ -18,10 +18,9 @@ public class AppController
     
     public bool HasActiveGame { get; private set; }
     
-    
-    
     private AppController()
     {
+        LichessAPIUtils.InitializeClient();
         authorizationProcess = new AuthorizationProcess();
         OnAuthCompleted(this, new AuthEventArgs(AuthorizationProcess.HasToken()));
         authorizationProcess.OnAuthCompleted += OnAuthCompleted;
@@ -69,6 +68,12 @@ public class AppController
     public void StartAuthentication()
     {
         authorizationProcess.StartAuthentication();
+    }
+
+    public void Dispose()
+    {
+        eventStreamCancellationTokenSource.Cancel(true);
+        gameCancellationTokenSource?.Cancel(true);
     }
 }
 

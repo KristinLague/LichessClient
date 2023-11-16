@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -18,6 +19,9 @@ public class LichessAPIUtils
     
     public static Action<Game>? OnGameStarted;
     public static Action<Game>? OnGameEnded;
+    
+    private const int DelayOnError = 5000; // 5 seconds delay on error
+    private const int DelayOnRateLimit = 60000; // 60 seconds delay on rate limit hit
 
     public static async void TryGetProfile(Action<Profile> onSuccess)
     {
@@ -95,110 +99,81 @@ public class LichessAPIUtils
         }
     }
 
+    public static void InitializeClient()
+    {
+        client.Timeout = TimeSpan.FromMinutes(2f);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+    }
+
     public static async Task EventStreamAsync(CancellationToken ct)
     {
+        HttpClient eventClient = new HttpClient();
+        eventClient.Timeout = TimeSpan.FromMinutes(2f);
+        eventClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+
         string uri = "https://lichess.org/api/stream/event";
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
-
         Console.WriteLine("Starting event stream");
-        while (AppController.Instance.CurrenAppState != AppStates.Authorization)
-        {
-            ct.ThrowIfCancellationRequested();
 
-            try
-            {
-                var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                using (HttpResponseMessage response =
-                       await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
-                using (Stream stream = await response.Content.ReadAsStreamAsync())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    while (!reader.EndOfStream && AppController.Instance.CurrenAppState != AppStates.Authorization)
-                    {
-                        ct.ThrowIfCancellationRequested();
-
-                        string line = await reader.ReadLineAsync();
-                        if (!string.IsNullOrEmpty(line))
-                        {
-                            GameEvent gameEvent = JsonConvert.DeserializeObject<GameEvent>(line);
-
-                            if (gameEvent.type is "gameStart" or "gameFinish")
-                            {
-                                Game game = gameEvent.Game;
-                                if (gameEvent.type is "gameStart")
-                                {
-                                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                                    {
-                                       OnGameStarted?.Invoke(game);
-                                       Console.WriteLine("Game ID: " + game.fullId);
-                                    });
-                                }
-                                else
-                                {
-                                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-                                    {
-                                        OnGameEnded?.Invoke(game);
-                                    });
-                                }
-                                Console.WriteLine("Game " + line);
-                            }
-                            else if (gameEvent.type is "challenge")
-                            {
-                                Console.WriteLine("Challenge " + line);
-                            }
-                            else if (gameEvent.type == "challengeCanceled")
-                            {
-                                Console.WriteLine("Challenge canceled " + line);
-                            }
-                            else
-                            {
-                                Console.WriteLine("Challenge declined " + line);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-    }
-    
-    public static async Task RequestStreamAsync(string gameId, CancellationToken ct)
-    {
-        Console.WriteLine(gameId);
-        string uri = $"https://lichess.org/api/board/game/stream/{gameId}";
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
-
-    while (AppController.Instance.HasActiveGame)
-    {
-        ct.ThrowIfCancellationRequested();
-        
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
-            using (Stream stream = await response.Content.ReadAsStreamAsync())
-            using (StreamReader reader = new StreamReader(stream))
+            using (HttpResponseMessage response = await eventClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
             {
-                while (!reader.EndOfStream && AppController.Instance.HasActiveGame)
+                if (!response.IsSuccessStatusCode)
                 {
-                    ct.ThrowIfCancellationRequested();
+                    await HandleErrorResponse(response);
+                    return;
+                }
 
-                    string line = await reader.ReadLineAsync();
-
-                    Console.WriteLine(line);
-                    if (string.IsNullOrEmpty(line))
+                using (Stream stream = await response.Content.ReadAsStreamAsync())
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    while (!reader.EndOfStream)
                     {
-                        Console.WriteLine("Ping!");
+                        ct.ThrowIfCancellationRequested();
+                        string line = await reader.ReadLineAsync();
+                        Console.WriteLine(line);
                     }
-                    else 
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error: {e.Message}");
+            await Task.Delay(DelayOnError);
+        }
+    }
+
+
+    public static async Task RequestStreamAsync(string gameId, CancellationToken ct)
+    {
+        HttpClient requestClient = new HttpClient();
+        requestClient.Timeout = TimeSpan.FromMinutes(2f);
+        requestClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+
+        string uri = $"https://lichess.org/api/board/game/stream/{gameId}";
+        Console.WriteLine($"Requesting Stream for {gameId}");
+
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using (HttpResponseMessage response = await requestClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
+            {
+                if (!response.IsSuccessStatusCode)
+                {
+                    await HandleErrorResponse(response);
+                    return;
+                }
+
+                using (Stream stream = await response.Content.ReadAsStreamAsync())
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    while (!reader.EndOfStream)
                     {
-                        
+                        ct.ThrowIfCancellationRequested();
+                        string line = await reader.ReadLineAsync();
+                        Console.WriteLine(line);
+                        // Process the line here as needed
                     }
                 }
             }
@@ -210,13 +185,25 @@ public class LichessAPIUtils
         }
         catch (Exception e)
         {
-            Console.WriteLine("Error: " + e.Message);
-            await Task.Delay(1000); 
+            Console.WriteLine($"Error: {e.Message}");
+            await Task.Delay(DelayOnError);
         }
     }
-}
 
 
+    private static async Task HandleErrorResponse(HttpResponseMessage response)
+    {
+        if (response.StatusCode == (HttpStatusCode)429) // Too Many Requests
+        {
+            Console.WriteLine("Rate limit hit, waiting...");
+            await Task.Delay(DelayOnRateLimit);
+        }
+        else
+        {
+            Console.WriteLine($"HTTP error: {response.StatusCode}");
+            await Task.Delay(DelayOnError);
+        }
+    }
 }
 
 
