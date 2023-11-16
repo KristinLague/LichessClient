@@ -17,11 +17,14 @@ public class LichessAPIUtils
     private static readonly HttpClient client = new HttpClient();
     private const string k_authBearer = "Bearer";
     
-    public static Action<Game>? OnGameStarted;
-    public static Action<Game>? OnGameEnded;
+    public static Action<GameFull>? OnGameStarted;
+    public static Action<GameState>? OnBoardUpdated;
+    public static Action<GameState>? OnGameOver;
     
     private const int DelayOnError = 5000; // 5 seconds delay on error
     private const int DelayOnRateLimit = 60000; // 60 seconds delay on rate limit hit
+    
+    public static string Username { get; private set; }
 
     public static async void TryGetProfile(Action<Profile> onSuccess)
     {
@@ -48,6 +51,7 @@ public class LichessAPIUtils
                 var json = await response.Content.ReadAsStringAsync();
                 Console.WriteLine("Profile: " + json);
                 Profile profile = JsonConvert.DeserializeObject<Profile>(json);
+                Username = profile.username;
                 onSuccess?.Invoke(profile);
             }
         }
@@ -173,7 +177,29 @@ public class LichessAPIUtils
                         ct.ThrowIfCancellationRequested();
                         string line = await reader.ReadLineAsync();
                         Console.WriteLine(line);
-                        // Process the line here as needed
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            if (line.Contains("gameFull"))
+                            {
+                                GameFull gameFull = JsonConvert.DeserializeObject<GameFull>(line);
+                                Console.WriteLine("GAMEFULL " + gameFull.id);
+                                Avalonia.Threading.Dispatcher.UIThread.Post(() => OnGameStarted?.Invoke(gameFull));
+                            }
+                            else
+                            {
+                                GameState gameState = JsonConvert.DeserializeObject<GameState>(line);
+                                Console.WriteLine("GAMESTATE " + gameState.status);
+                                Avalonia.Threading.Dispatcher.UIThread.Post(() => OnBoardUpdated?.Invoke(gameState));
+
+                                if (gameState.status == "mate" || gameState.status == "resign" ||
+                                    gameState.status == "draw" || gameState.status == "aborted" ||
+                                    gameState.status == "stalemate")
+                                {
+                                    Console.WriteLine("Game ended by " + gameState.status);
+                                    Avalonia.Threading.Dispatcher.UIThread.Post(() => OnGameOver?.Invoke(gameState));
+                                }
+                            }
+                        }
                     }
                 }
             }

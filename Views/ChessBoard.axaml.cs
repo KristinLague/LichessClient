@@ -5,6 +5,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Chess.Core;
+using LichessClient.Models;
+using GameState = LichessClient.Models.GameState;
 
 namespace LichessClient.Views;
 
@@ -14,7 +16,10 @@ public partial class ChessBoard : UserControl
     public Dictionary<string,ChessSquareElement> squares = new Dictionary<string, ChessSquareElement>();
     private bool isPlayingWhite;
     private string fenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    
+
+    private string currentGameId;
+    private bool isPlayerTurn;
+    private ChessSquareElement lastCheck;
     
     public ChessBoard()
     {
@@ -22,6 +27,137 @@ public partial class ChessBoard : UserControl
         PopulateBoard();
         SetupBoard(isPlayingWhite);
         RefreshBoard("");
+    }
+
+    public void OnGameStarted(GameFull gameFull)
+    {
+        currentGameId = gameFull.id;
+        //tab.label = gameFull.white.name + " vs " + gameFull.black.name;
+        SetupBoard(gameFull.white.name == LichessAPIUtils.Username);
+        fenString = gameFull.initialFen;
+        //SetupPlayers(gameFull);
+        isPlayerTurn = IsPlayerTurn(gameFull.state.moves);
+        //opponentClockElement.AddToClassList(isPlayerTurn ? "background__primary" : "background__accent");
+        //opponentClockElement.RemoveFromClassList(isPlayerTurn ? "background__accent" : "background__primary");
+        //playerClockElement.AddToClassList(isPlayerTurn ? "background__accent" : "background__primary");
+        //playerClockElement.RemoveFromClassList(isPlayerTurn ? "background__primary" : "background__accent");
+        
+        //GameClock.Instance.OnTimePlayer += OnTimePlayer;
+        //GameClock.Instance.OnTimeOpponent += OnTimeOpponent;
+        //GameClock.Instance.SyncWithServerTime(gameFull.state.wtime,gameFull.state.btime,isPlayingWhite,isPlayerTurn );
+        RefreshBoard(gameFull.state.moves);
+        
+        if (InCheck(fenString))
+        {
+            if (isPlayerTurn)
+            {
+                var pos = GetKingPosition(fenString, isPlayingWhite);
+                //squares[pos].SetCheck(true);
+                lastCheck = squares[pos];
+            }
+            else
+            {
+                var pos = GetKingPosition(fenString, !isPlayingWhite);
+                //squares[pos].SetCheck(true);
+                lastCheck = squares[pos];
+            }
+        }
+        
+        //MarkLastMove(gameFull.state.moves);
+        
+        LichessAPIUtils.OnBoardUpdated += OnBoardUpdated;
+        //OnMoveMade += OnSuccessfulMove;
+        LichessAPIUtils.OnGameOver += OnGameOver;
+    }
+
+    private void OnGameOver(GameState obj)
+    {
+        //throw new NotImplementedException();
+        Console.WriteLine("On Game Over");
+    }
+
+    private void OnBoardUpdated(GameState update)
+    {
+        RefreshBoard(update.moves);
+        isPlayerTurn = IsPlayerTurn(update.moves);
+        
+        //opponentClockElement.AddToClassList(isPlayerTurn ? "background__primary" : "background__accent");
+        //opponentClockElement.RemoveFromClassList(isPlayerTurn ? "background__accent" : "background__primary");
+        //playerClockElement.AddToClassList(isPlayerTurn ? "background__accent" : "background__primary");
+        //playerClockElement.RemoveFromClassList(isPlayerTurn ? "background__primary" : "background__accent");
+        
+        //GameClock.Instance.SyncWithServerTime(update.wtime,update.btime,isPlayingWhite, isPlayerTurn);
+
+        //Reset(true);
+        if (InCheck(fenString))
+        {
+            if (isPlayerTurn)
+            {
+                var pos = GetKingPosition(fenString, isPlayingWhite);
+                //squares[pos].SetCheck(true);
+                lastCheck = squares[pos];
+            }
+            else
+            {
+                var pos = GetKingPosition(fenString, !isPlayingWhite);
+                //squares[pos].SetCheck(true);
+                lastCheck = squares[pos];
+            }
+        }
+
+        //MarkLastMove(update.moves);
+    }
+
+    private bool IsPlayerTurn(string moves)
+    {
+        if (moves == "")
+        {
+            return isPlayingWhite;
+        }
+        
+        string[] totalMoves = moves.Split(' ');
+        return (isPlayingWhite && totalMoves.Length % 2 == 0) ||
+               (!isPlayingWhite && totalMoves.Length % 2 == 1);
+    }
+    
+    bool InCheck(string fen)
+    {
+        Board board = new();
+        board.LoadPosition(fen);
+        return board.IsInCheck();
+    }
+    
+    public string GetKingPosition(string fen, bool isWhite)
+    {
+        return FindKingPosition(fen, isWhite ? 'K' : 'k');
+    }
+    
+    private string FindKingPosition(string fen, char king)
+    {
+        string[] parts = fen.Split(' ');
+        string[] ranks = parts[0].Split('/');
+
+        for (int i = 0; i < ranks.Length; i++)
+        {
+            int file = 0;
+            foreach (char c in ranks[i])
+            {
+                if (c >= '1' && c <= '8')
+                {
+                    file += (int)char.GetNumericValue(c);
+                }
+                else
+                {
+                    if (c == king)
+                    {
+                        return "" + (char)('a' + file) + (8 - i);
+                    }
+                    file++;
+                }
+            }
+        }
+
+        return null;
     }
 
     public void SetupGame(string fen, bool isWhite)
