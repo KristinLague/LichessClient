@@ -25,6 +25,7 @@ public partial class MainWindow : Window
         {
             AppStates.Authorization => new Authorization(),
             AppStates.Home => new Home(),
+            AppStates.Game => new Game(),
             _ => throw new ArgumentOutOfRangeException(nameof(updatedState), updatedState, null)
         };
     }

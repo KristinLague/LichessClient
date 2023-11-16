@@ -14,6 +14,8 @@ public partial class ChessBoard : UserControl
     public Dictionary<string,ChessSquareElement> squares = new Dictionary<string, ChessSquareElement>();
     private bool isPlayingWhite;
     private string fenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    
+    
     public ChessBoard()
     {
         InitializeComponent();
@@ -22,12 +24,13 @@ public partial class ChessBoard : UserControl
         RefreshBoard("");
     }
 
-    public void SetAsPreviewBoard(string fen, bool isWhite)
+    public void SetupGame(string fen, bool isWhite)
     {
         isPlayingWhite = isWhite;
         fenString = fen;
+        PopulateBoard();
         SetupBoard(isPlayingWhite);
-        RefreshBoard("");
+        SetupBoardFromFEN(fenString);
     }
 
     private void RefreshBoard(string moves)

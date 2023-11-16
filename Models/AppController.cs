@@ -49,7 +49,7 @@ public class AppController
         OnAppStateChanged?.Invoke(this, CurrenAppState);
     }
 
-    private void OnGameStarted(Game game)
+    public void PlayGame(string id)
     {
         HasActiveGame = true;
         gameCancellationTokenSource?.Cancel();
@@ -57,8 +57,13 @@ public class AppController
         
         SetAppState(AppStates.Game);
         
-        Task.Run(() => LichessAPIUtils.RequestStreamAsync(game.fullId, gameCancellationTokenSource.Token),
-                gameCancellationTokenSource.Token);
+        Task.Run(() => LichessAPIUtils.RequestStreamAsync(id, gameCancellationTokenSource.Token),
+            gameCancellationTokenSource.Token);
+    }
+
+    private void OnGameStarted(Game game)
+    {
+        
     }
 
     public void StartAuthentication()

@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Chess.Core;
+using LichessClient.Models;
 
 namespace LichessClient.Views;
 
@@ -13,18 +15,27 @@ public partial class ChessBoardPreview : UserControl
     public Dictionary<string,ChessSquareElement> squares = new Dictionary<string, ChessSquareElement>();
     private bool isPlayingWhite;
     private string fenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private string gameId;
+    
+    
     public ChessBoardPreview()
     {
         InitializeComponent();
     }
+    
+    private void ChessBoardButton_Click(object sender, RoutedEventArgs e)
+    {
+        AppController.Instance.PlayGame(gameId);
+    }
 
-    public void SetAsPreviewBoard(string fen, bool isWhite)
+    public void SetAsPreviewBoard(string id, string fen, bool isWhite)
     {
         isPlayingWhite = isWhite;
         fenString = fen;
         PopulateBoard();
         SetupBoard(isPlayingWhite);
         SetupBoardFromFEN(fenString);
+        gameId = id;
     }
     public void SetOpponentName(string opponentName)
     {

@@ -60,7 +60,7 @@ public partial class Home : UserControl
         {
             var chessBoard = new ChessBoardPreview();
             Console.WriteLine(games[i].fen);
-            chessBoard.SetAsPreviewBoard(games[i].fen, games[i].color == "white");
+            chessBoard.SetAsPreviewBoard(games[i].fullId, games[i].fen, games[i].color == "white");
             chessBoard.SetOpponentName(games[i].opponent.username);
             chessBoard.Width = boardSize;
             chessBoard.Height = boardSize;
