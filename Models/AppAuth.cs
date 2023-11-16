@@ -10,6 +10,7 @@ public abstract class AppAuth
     public const string authorizationEndpoint = "https://lichess.org/oauth/";
     public const string tokenEndpoint = "https://lichess.org/api/token";
     public const string profileEndpoint = "https://lichess.org/api/account";
+    public const string gamesEndpoint = "https://lichess.org/api/account/playing";
 }
 
 [Serializable]

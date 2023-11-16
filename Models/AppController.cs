@@ -29,10 +29,11 @@ public class AppController
 
     private void OnAuthCompleted(object sender, AuthEventArgs e)
     {
-        CurrenAppState = e.IsSuccessful ? AppStates.Home : AppStates.Authorization;
-        OnAppStateChanged?.Invoke(this, CurrenAppState);
+        SetAppState(e.IsSuccessful ? AppStates.Home : AppStates.Authorization);
         LichessAPIUtils.OnGameStarted += OnGameStarted;
         LichessAPIUtils.OnGameEnded += OnGameEnded;
+        
+        //Subscribe to EventStream
         Task.Run(() => LichessAPIUtils.EventStreamAsync(eventStreamCancellationTokenSource.Token), eventStreamCancellationTokenSource.Token);
     }
 
@@ -41,6 +42,12 @@ public class AppController
         HasActiveGame = false;
         gameCancellationTokenSource?.Cancel();
     }
+    
+    private void SetAppState(AppStates newState)
+    {
+        CurrenAppState = newState;
+        OnAppStateChanged?.Invoke(this, CurrenAppState);
+    }
 
     private void OnGameStarted(Game game)
     {
@@ -48,7 +55,10 @@ public class AppController
         gameCancellationTokenSource?.Cancel();
         gameCancellationTokenSource = new CancellationTokenSource();
         
-        Task.Run(() => LichessAPIUtils.RequestStreamAsync(game.fullId, gameCancellationTokenSource.Token), gameCancellationTokenSource.Token);
+        SetAppState(AppStates.Game);
+        
+        Task.Run(() => LichessAPIUtils.RequestStreamAsync(game.fullId, gameCancellationTokenSource.Token),
+                gameCancellationTokenSource.Token);
     }
 
     public void StartAuthentication()
@@ -60,5 +70,6 @@ public class AppController
 public enum AppStates
 {
     Authorization,
-    Home
+    Home,
+    Game
 }

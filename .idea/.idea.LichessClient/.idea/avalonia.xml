@@ -5,6 +5,7 @@
       <map>
         <entry key="Views/Authorization.axaml" value="LichessClient.csproj" />
         <entry key="Views/ChessBoard.axaml" value="LichessClient.csproj" />
+        <entry key="Views/ChessBoardPreview.axaml" value="LichessClient.csproj" />
         <entry key="Views/ChessSquareElement.axaml" value="LichessClient.csproj" />
         <entry key="Views/Home.axaml" value="LichessClient.csproj" />
         <entry key="Views/MainWindow.axaml" value="LichessClient.csproj" />

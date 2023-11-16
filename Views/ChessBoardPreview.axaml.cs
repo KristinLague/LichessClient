@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -8,42 +7,30 @@ using Chess.Core;
 
 namespace LichessClient.Views;
 
-public partial class ChessBoard : UserControl
+public partial class ChessBoardPreview : UserControl
 {
     private List<ChessSquareElement> boardElements = new List<ChessSquareElement>();
     public Dictionary<string,ChessSquareElement> squares = new Dictionary<string, ChessSquareElement>();
     private bool isPlayingWhite;
     private string fenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    public ChessBoard()
+    public ChessBoardPreview()
     {
         InitializeComponent();
-        PopulateBoard();
-        SetupBoard(isPlayingWhite);
-        RefreshBoard("");
     }
 
     public void SetAsPreviewBoard(string fen, bool isWhite)
     {
         isPlayingWhite = isWhite;
         fenString = fen;
+        PopulateBoard();
         SetupBoard(isPlayingWhite);
-        RefreshBoard("");
+        SetupBoardFromFEN(fenString);
+    }
+    public void SetOpponentName(string opponentName)
+    {
+        OpponentNameTextBlock.Text = opponentName;
     }
 
-    private void RefreshBoard(string moves)
-    {
-        if (moves == "")
-        {
-            fenString = GetFENFromMoves(Array.Empty<string>());
-            SetupBoardFromFEN(fenString);
-        }
-        else
-        {
-            string[] individualMoves = moves.Split(' ');
-            fenString = GetFENFromMoves(individualMoves);
-            SetupBoardFromFEN(fenString);
-        }
-    }
 
     private void SetupBoardFromFEN(string fen)
     {

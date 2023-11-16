@@ -57,13 +57,50 @@ public class LichessAPIUtils
         }
     }
 
+    public static async void TryGetGames(Action<ActiveGames> onSuccess)
+    {
+        try
+        {
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue(k_authBearer,
+                    KeychainHelper.GetTokenFromKeychain());
+            var response = await client.GetAsync(AppAuth.gamesEndpoint);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    Console.WriteLine("Token invalid or expired - get new token!");
+                }
+                else
+                {
+                    Console.WriteLine($"Error: {response.ReasonPhrase}");
+                }
+            }
+            else
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Active Games: " + json);
+                ActiveGames games = JsonConvert.DeserializeObject<ActiveGames>(json);
+                onSuccess?.Invoke(games);
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            Console.WriteLine($"Request exception: {e.Message}");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"General exception: {e.Message}");
+        }
+    }
+
     public static async Task EventStreamAsync(CancellationToken ct)
     {
         string uri = "https://lichess.org/api/stream/event";
         var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
-        var request = new HttpRequestMessage(HttpMethod.Get, uri);
 
         Console.WriteLine("Starting event stream");
         while (AppController.Instance.CurrenAppState != AppStates.Authorization)
@@ -72,6 +109,7 @@ public class LichessAPIUtils
 
             try
             {
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 using (HttpResponseMessage response =
                        await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
                 using (Stream stream = await response.Content.ReadAsStreamAsync())
