@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using LichessClient.Models;
 
@@ -9,27 +10,16 @@ public partial class Home : UserControl
     public Home()
     {
         InitializeComponent();
-        GetProfile();
-    }
+        LichessAPIUtils.TryGetProfile(profile =>
+        {
+            SetUserName(profile.username);
+            Console.WriteLine(profile.username);
+        });
 
-    private async void GetProfile()
+    }
+    
+    private void SetUserName(string userName)
     {
-        try
-        {
-            Profile? profile = await LichessAPIUtils.TryGetProfile();
-            if (profile != null)
-            {
-                //DOUI
-            }
-            else
-            {
-                //Throw Error
-            }
-        }
-        catch (Exception e)
-        {
-            //TODO: Add toast for errors like this
-            Console.WriteLine($"Exception: {e.Message}");
-        }
+        UserNameTextBlock.Text = userName;
     }
 }

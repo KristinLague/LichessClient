@@ -1,7 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
@@ -11,8 +15,11 @@ public class LichessAPIUtils
 {
     private static readonly HttpClient client = new HttpClient();
     private const string k_authBearer = "Bearer";
+    
+    public static Action<Game>? OnGameStarted;
+    public static Action<Game>? OnGameEnded;
 
-    public static async Task<Profile?> TryGetProfile()
+    public static async void TryGetProfile(Action<Profile> onSuccess)
     {
         try
         {
@@ -23,7 +30,7 @@ public class LichessAPIUtils
 
             if (!response.IsSuccessStatusCode)
             {
-                if(response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     Console.WriteLine("Token invalid or expired - get new token!");
                 }
@@ -37,7 +44,7 @@ public class LichessAPIUtils
                 var json = await response.Content.ReadAsStringAsync();
                 Console.WriteLine("Profile: " + json);
                 Profile profile = JsonConvert.DeserializeObject<Profile>(json);
-                return profile;
+                onSuccess?.Invoke(profile);
             }
         }
         catch (HttpRequestException e)
@@ -48,9 +55,132 @@ public class LichessAPIUtils
         {
             Console.WriteLine($"General exception: {e.Message}");
         }
-        return null;
+    }
+
+    public static async Task EventStreamAsync(CancellationToken ct)
+    {
+        string uri = "https://lichess.org/api/stream/event";
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+        var request = new HttpRequestMessage(HttpMethod.Get, uri);
+
+        Console.WriteLine("Starting event stream");
+        while (AppController.Instance.CurrenAppState != AppStates.Authorization)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                using (HttpResponseMessage response =
+                       await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
+                using (Stream stream = await response.Content.ReadAsStreamAsync())
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    while (!reader.EndOfStream && AppController.Instance.CurrenAppState != AppStates.Authorization)
+                    {
+                        ct.ThrowIfCancellationRequested();
+
+                        string line = await reader.ReadLineAsync();
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            GameEvent gameEvent = JsonConvert.DeserializeObject<GameEvent>(line);
+
+                            if (gameEvent.type is "gameStart" or "gameFinish")
+                            {
+                                Game game = gameEvent.Game;
+                                if (gameEvent.type is "gameStart")
+                                {
+                                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                                    {
+                                       OnGameStarted?.Invoke(game);
+                                       Console.WriteLine("Game ID: " + game.fullId);
+                                    });
+                                }
+                                else
+                                {
+                                    Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                                    {
+                                        OnGameEnded?.Invoke(game);
+                                    });
+                                }
+                                Console.WriteLine("Game " + line);
+                            }
+                            else if (gameEvent.type is "challenge")
+                            {
+                                Console.WriteLine("Challenge " + line);
+                            }
+                            else if (gameEvent.type == "challengeCanceled")
+                            {
+                                Console.WriteLine("Challenge canceled " + line);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Challenge declined " + line);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
+    
+    public static async Task RequestStreamAsync(string gameId, CancellationToken ct)
+    {
+        Console.WriteLine(gameId);
+        string uri = $"https://lichess.org/api/board/game/stream/{gameId}";
+        var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+
+    while (AppController.Instance.HasActiveGame)
+    {
+        ct.ThrowIfCancellationRequested();
+        
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
+            using (Stream stream = await response.Content.ReadAsStreamAsync())
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                while (!reader.EndOfStream && AppController.Instance.HasActiveGame)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    string line = await reader.ReadLineAsync();
+
+                    Console.WriteLine(line);
+                    if (string.IsNullOrEmpty(line))
+                    {
+                        Console.WriteLine("Ping!");
+                    }
+                    else 
+                    {
+                        
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Task was cancelled.");
+            throw;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error: " + e.Message);
+            await Task.Delay(1000); 
+        }
     }
 }
+
+
+}
+
 
 [Serializable]
 public struct Profile
@@ -58,8 +188,8 @@ public struct Profile
     public string id;
     public string username;
     public Perfs perfs;
-    public TimeSpan createdAt;
-    public TimeSpan seenAt;
+    public long createdAt;
+    public long seenAt;
     public PlayTime playTime;
     public string url;
     public string playing;
@@ -192,7 +322,7 @@ public class GameFull
     public Clock clock;
     public string speed;
     public Perf perf;
-    public TimeSpan createdAt;
+    public long createdAt;
     public White white;
     public Black black;
     public string initialFen;
@@ -303,6 +433,7 @@ public class ActiveGame
 public class GameEvent
 {
     public string type;
+    public Game Game;
 }
 
 [Serializable]
@@ -394,8 +525,8 @@ public class Tournament
     public string fullName;
     public int nbPlayers;
     public Variant variant;
-    public TimeSpan startsAt;
-    public TimeSpan endsAt;
+    public long startsAt;
+    public long endsAt;
     public string status;
     public Perf perf;
     public int secondsToStart;
