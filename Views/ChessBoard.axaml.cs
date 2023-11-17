@@ -38,7 +38,8 @@ public partial class ChessBoard : UserControl
     {
         currentGameId = gameFull.id;
         //tab.label = gameFull.white.name + " vs " + gameFull.black.name;
-        SetupBoard(gameFull.white.name == LichessAPIUtils.Username);
+        isPlayingWhite = gameFull.white.name == LichessAPIUtils.Username;
+        SetupBoard(isPlayingWhite);
         fenString = gameFull.initialFen;
         //SetupPlayers(gameFull);
         isPlayerTurn = IsPlayerTurn(gameFull.state.moves);
@@ -47,9 +48,6 @@ public partial class ChessBoard : UserControl
         //playerClockElement.AddToClassList(isPlayerTurn ? "background__accent" : "background__primary");
         //playerClockElement.RemoveFromClassList(isPlayerTurn ? "background__primary" : "background__accent");
         
-        //GameClock.Instance.OnTimePlayer += OnTimePlayer;
-        //GameClock.Instance.OnTimeOpponent += OnTimeOpponent;
-        //GameClock.Instance.SyncWithServerTime(gameFull.state.wtime,gameFull.state.btime,isPlayingWhite,isPlayerTurn );
         RefreshBoard(gameFull.state.moves);
         
         if (InCheck(fenString))
