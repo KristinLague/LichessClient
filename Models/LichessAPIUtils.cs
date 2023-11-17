@@ -18,6 +18,7 @@ public class LichessAPIUtils
     public static Action<GameFull>? OnGameStarted;
     public static Action<GameState>? OnBoardUpdated;
     public static Action<GameState>? OnGameOver;
+    public static Action<GameState>? OnDrawOffered;
     
     private const int DelayOnError = 5000;
     private const int DelayOnRateLimit = 60000; 
@@ -131,6 +132,39 @@ public class LichessAPIUtils
             }
         }
     }
+    
+    public static async Task HandleDrawOfferAsync(string gameId, bool accept)
+    {
+        using (var client = new HttpClient())
+        {
+            client.Timeout = TimeSpan.FromMinutes(2f);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+            
+            string uri = $"https://lichess.org/api/board/game/{gameId}/draw/{(accept ? "yes" : "no")}";
+
+            try
+            {
+                // Send a POST request to the URI
+                HttpResponseMessage response = await client.PostAsync(uri, null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Responded successfully to draw request for {gameId}.");
+                }
+                else
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to respond to draw request: {response.StatusCode} - {responseContent}");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception occurred: {e.Message}");
+            }
+        }
+
+        
+    }
 
     public static void InitializeClient()
     {
@@ -165,7 +199,9 @@ public class LichessAPIUtils
                     {
                         ct.ThrowIfCancellationRequested();
                         string line = await reader.ReadLineAsync();
-                        Console.WriteLine(line);
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.WriteLine("EVENT: " + line);
+                        Console.ResetColor();
                     }
                 }
             }
@@ -204,8 +240,15 @@ public class LichessAPIUtils
                     while (!reader.EndOfStream)
                     {
                         ct.ThrowIfCancellationRequested();
+                        
                         string line = await reader.ReadLineAsync();
-                        Console.WriteLine(line);
+                        Avalonia.Threading.Dispatcher.UIThread.Post((() =>
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("GAME: " + line);
+                            Console.ResetColor();
+                        }));
+                        
                         if (!string.IsNullOrEmpty(line))
                         {
                             if (line.Contains("gameFull"))
@@ -214,11 +257,29 @@ public class LichessAPIUtils
                                 Console.WriteLine("GAMEFULL " + gameFull.id);
                                 Avalonia.Threading.Dispatcher.UIThread.Post(() => OnGameStarted?.Invoke(gameFull));
                             }
+                            else if (line.Contains("chatLine"))
+                            {
+                                
+                            }
                             else
                             {
                                 GameState gameState = JsonConvert.DeserializeObject<GameState>(line);
                                 Console.WriteLine("GAMESTATE " + gameState.status);
-                                Avalonia.Threading.Dispatcher.UIThread.Post(() => OnBoardUpdated?.Invoke(gameState));
+                                if (gameState.wdraw != false || gameState.bdraw != false)
+                                {
+                                    Avalonia.Threading.Dispatcher.UIThread.Post((() =>
+                                    {
+                                        Console.ForegroundColor = ConsoleColor.Yellow;
+                                        Console.WriteLine("DRAW OFFERED");
+                                        Console.ResetColor();
+                                        
+                                        OnDrawOffered?.Invoke(gameState);
+                                    }));
+                                }
+                                else
+                                {
+                                    Avalonia.Threading.Dispatcher.UIThread.Post(() => OnBoardUpdated?.Invoke(gameState));
+                                }
 
                                 if (gameState.status == "mate" || gameState.status == "resign" ||
                                     gameState.status == "draw" || gameState.status == "aborted" ||
@@ -384,6 +445,8 @@ public class GameState
     public int binc;
     public string status;
     public string winner;
+    public bool wdraw;
+    public bool bdraw;
 }
 
 // This is a generic class to identify the type

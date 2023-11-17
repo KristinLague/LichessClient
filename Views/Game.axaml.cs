@@ -23,6 +23,15 @@ public partial class Game : UserControl
         gameClock.OnTimeOpponent += OnTimeOpponent;
         gameClock.SyncWithServerTime(gameFull.state.wtime,gameFull.state.btime,IsPlayingWhite,IsPlayerTurn(gameFull.state.moves) );
         LichessAPIUtils.OnGameOver += OnGameOver;
+        LichessAPIUtils.OnDrawOffered += OnDrawOffered;
+    }
+
+    private void OnDrawOffered(GameState state)
+    {
+        if (state.wdraw && IsPlayingWhite || state.bdraw && !IsPlayingWhite)
+            return;
+        
+        DrawOfferPopup.IsOpen = true;
     }
 
     private void OnGameOver(GameState obj)
@@ -35,8 +44,23 @@ public partial class Game : UserControl
     {
         gameClock.SyncWithServerTime(state.wtime,state.btime,IsPlayingWhite, IsPlayerTurn(state.moves));
     }
+
+    private void OnRequestDraw(object sender, RoutedEventArgs e)
+    {
+        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,true);
+    }
     
+    private void AcceptDraw_Click(object sender, RoutedEventArgs e)
+    {
+        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,true);
+        DrawOfferPopup.IsOpen = false; // Close the popup
+    }
     
+    private void DeclineDraw_Click(object sender, RoutedEventArgs e)
+    {
+        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,false);
+        DrawOfferPopup.IsOpen = false; 
+    }
 
     private bool IsPlayingWhite => gameFull.white.name == LichessAPIUtils.Username;
     

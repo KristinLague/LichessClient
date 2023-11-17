@@ -42,9 +42,35 @@
 
         <!-- Action Buttons -->
         <StackPanel Grid.Row="1" Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button x:Name="DrawButton" Content="Offer Draw" Margin="5" Width="100" Background="LightGreen"/>
+            <Button x:Name="DrawButton" Content="Offer Draw" Margin="5" Width="100" Background="LightGreen" Click="OnRequestDraw"/>
             <Button x:Name="TakebackButton" Content="Request Takeback" Margin="5" Width="100" Background="LightBlue"/>
             <Button x:Name="ResignButton" Content="Resign" Margin="5" Width="100" Background="LightCoral"/>
         </StackPanel>
+        
+        <!-- Popup for Draw Offer -->
+        <Popup x:Name="DrawOfferPopup" IsOpen="False" Placement="Center">
+            <Border Width="400" Height="220" Background="White" Padding="20" CornerRadius="5" BorderBrush="Gray" BorderThickness="2">
+                <StackPanel VerticalAlignment="Center">
+                    <!-- Popup Title -->
+                    <TextBlock Text="Draw Request" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                    <!-- Description Text -->
+                    <TextBlock Text="Your opponent offers a draw. Do you accept?" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+                    <!-- Buttons Container -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                        <!-- Accept Button -->
+                        <Button Content="Accept" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Background="Red" Foreground="White" Click="AcceptDraw_Click"/>
+
+                        <!-- Decline Button -->
+                        <Button Content="Decline" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Click="DeclineDraw_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+
+
+
     </Grid>
 </UserControl>
