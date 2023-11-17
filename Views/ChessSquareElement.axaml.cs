@@ -1,5 +1,7 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -46,6 +48,8 @@ public partial class ChessSquareElement : UserControl
             SetPieceImage(currentPiece);
         }
     }
+    
+    public Action OnClick { get; set; }
 
     public string Coordinate { get; set; }
     
@@ -88,5 +92,57 @@ public partial class ChessSquareElement : UserControl
         }
         
         PieceImageControl.IsVisible = imageName != null;
+    }
+    private void SquareBorder_PointerPressed(object sender, PointerPressedEventArgs e)
+    {
+        OnClick?.Invoke();
+    }
+    
+    public void SetLastMove(bool lastMove)
+    {
+        if (lastMove)
+        {
+            SquareBorder.Background = new SolidColorBrush(currentColor == Color.light ? new Avalonia.Media.Color(255,110,244,0) : new Avalonia.Media.Color(255,31,90,0));
+        }
+        else
+        {
+            SetSquareColor(currentColor);
+        }
+    }
+    
+    public void SetSelected(bool selected)
+    {
+        if (selected)
+        {
+            SquareBorder.Background = new SolidColorBrush(new Avalonia.Media.Color(255,150,90,214));
+        }
+        else
+        {
+            SetSquareColor(currentColor);
+        }
+    }
+
+    public void SetCheck(bool check)
+    {
+         if (check)
+         {
+             SquareBorder.Background = new SolidColorBrush(new Avalonia.Media.Color(255,255,0,0));
+         }
+         else
+         {
+             SetSquareColor(currentColor);
+         }
+    }
+    
+    public void SetMarker(bool marker)
+    {
+        if (marker)
+        {
+            SquareBorder.Background = new SolidColorBrush(new Avalonia.Media.Color(255,150,90,139));
+        }
+        else
+        {
+            SetSquareColor(currentColor);
+        }
     }
 }

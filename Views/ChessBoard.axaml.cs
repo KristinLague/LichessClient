@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -20,6 +21,11 @@ public partial class ChessBoard : UserControl
     private string currentGameId;
     private bool isPlayerTurn;
     private ChessSquareElement lastCheck;
+    private ChessSquareElement selectedSquare;
+    private ChessSquareElement[] lastLegalMoves;
+    private ChessSquareElement lastStartMove;
+    private ChessSquareElement lastEndMove;
+
     
     public ChessBoard()
     {
@@ -74,6 +80,162 @@ public partial class ChessBoard : UserControl
     {
         //throw new NotImplementedException();
         Console.WriteLine("On Game Over");
+    }
+    
+    private void OnSquareSelected(ChessSquareElement square)
+    {
+        Console.WriteLine(square.Coordinate);
+        if (!isPlayerTurn)
+        {
+            Console.WriteLine("not player turn ");
+            //Reset selection
+            Reset(false);
+            return;
+        }
+
+        if (selectedSquare != null)
+        {
+            if (selectedSquare == square)
+            {
+                Console.WriteLine("same square");
+                //Reset
+                Reset(false);
+                return;
+            }
+
+            if (lastLegalMoves != null)
+            {
+
+                if (lastLegalMoves.Contains(square))
+                {
+                    if(isPlayingWhite && square.Coordinate.Contains("8") || !isPlayingWhite && square.Coordinate.Contains("1"))
+                    {
+                        if (selectedSquare.CurrentPiece == ChessSquareElement.Piece.pawn)
+                        {
+                            Console.WriteLine("promotion");
+                            //TODO: Show promotion dialog
+                            //AppController.Instance.OnMove(currentGameId, selectedSquare.Coordinate, square.Coordinate,OnMoveMade, true);
+                            return;
+                        }
+                    }
+                    
+                    //TODO: Make move
+                    //AppController.Instance.OnMove(currentGameId, selectedSquare.Coordinate, square.Coordinate, OnMoveMade);
+                }
+                else
+                {
+                    if (square.PieceColor == ChessSquareElement.Color.light && isPlayingWhite ||
+                        square.PieceColor == ChessSquareElement.Color.dark && !isPlayingWhite)
+                    {
+                        //Reset
+                        Reset(false);
+                        
+                        selectedSquare = square;
+                        selectedSquare.SetSelected(true);
+                    
+                        var legalMoves = GetLegalTargetMoveSquares(selectedSquare.Coordinate, fenString);
+                        Console.WriteLine(legalMoves.Length + " legal moves " + selectedSquare.Coordinate);
+                        lastLegalMoves = new ChessSquareElement[legalMoves.Length];
+                        for (int i = 0; i < legalMoves.Length; i++)
+                        {
+                            lastLegalMoves[i] = squares[legalMoves[i]];
+                            lastLegalMoves[i].SetMarker(true);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("not legal move");
+                        //Reset
+                        Reset(false);
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("last legal moves null");
+            }
+        }
+        else
+        {
+            if (square.PieceColor == ChessSquareElement.Color.light && isPlayingWhite ||
+                square.PieceColor == ChessSquareElement.Color.dark && !isPlayingWhite)
+            {
+                selectedSquare = square;
+                selectedSquare.SetSelected(true);
+                    
+                var legalMoves = GetLegalTargetMoveSquares(selectedSquare.Coordinate, fenString);
+                Console.WriteLine(fenString + " " + legalMoves.Length + " legal moves " + selectedSquare.Coordinate);
+                lastLegalMoves = new ChessSquareElement[legalMoves.Length];
+                for (int i = 0; i < legalMoves.Length; i++)
+                {
+                    lastLegalMoves[i] = squares[legalMoves[i]];
+                    lastLegalMoves[i].SetMarker(true);
+                }
+            }
+        }
+    }
+    
+    private void Reset(bool force)
+    {
+        if (selectedSquare != null)
+        {
+            selectedSquare.SetSelected(false);
+            selectedSquare = null;
+        }
+
+        if (lastLegalMoves != null)
+        {
+            foreach (var move in lastLegalMoves)
+            {
+                move.SetMarker(false);
+            }
+            lastLegalMoves = null;
+        }
+
+        if (force)
+        {
+            if (lastCheck != null)
+            {
+                lastCheck.SetCheck(false);
+                lastCheck = null;
+            }
+        
+            if(lastStartMove != null)
+            {
+                lastStartMove.SetLastMove(false);
+                lastStartMove = null;
+            }
+        
+            if(lastEndMove != null)
+            {
+                lastEndMove.SetLastMove(false);
+                lastEndMove = null;
+            }
+        }
+    }
+    
+    public string[] GetLegalTargetMoveSquares(string startSquareName, string fen)
+    {
+        Board board = new Board();
+        board.LoadPosition(fen);
+        MoveGenerator moveGenerator = new MoveGenerator();
+        var moves = moveGenerator.GenerateMoves(board);
+
+        int startSquareIndex = BoardHelper.SquareIndexFromName(startSquareName);
+        List<string> targetSquareNames = new List<string>();
+        
+        Console.WriteLine("Total legal moves " + moves.Length);
+        Console.WriteLine("Filter: " + startSquareName + " " + startSquareIndex);
+        foreach (Move move in moves)
+        {
+            if (move.StartSquare == startSquareIndex)
+            {
+                targetSquareNames.Add(BoardHelper.SquareNameFromIndex(move.TargetSquare));
+            }
+        }
+        Console.WriteLine("Num filtered: " + targetSquareNames.Count);
+        
+        return targetSquareNames.ToArray();
     }
 
     private void OnBoardUpdated(GameState update)
@@ -363,6 +525,7 @@ public partial class ChessBoard : UserControl
                 var isLightSquare = (row + col) % 2 == 0;
                 chessSquare.SetSquareColor(isLightSquare ? ChessSquareElement.Color.light : ChessSquareElement.Color.dark);
                 chessSquare.SetPieceImage(ChessSquareElement.Piece.pawn);
+                chessSquare.OnClick = () => OnSquareSelected(chessSquare);
                 
                 ChessBoardGrid.Children.Add(chessSquare);
                 Grid.SetRow(chessSquare, row);
