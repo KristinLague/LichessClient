@@ -162,8 +162,37 @@ public class LichessAPIUtils
                 Console.WriteLine($"Exception occurred: {e.Message}");
             }
         }
+    }
 
-        
+    public static async Task ResignGame(string gameId)
+    {
+        using (var client = new HttpClient())
+        {
+            client.Timeout = TimeSpan.FromMinutes(2f);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+            
+            string uri = $"https://lichess.org/api/board/game/{gameId}/resign";
+            
+            try
+            {
+                // Send a POST request to the URI
+                HttpResponseMessage response = await client.PostAsync(uri, null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Responded successfully to resign for {gameId}.");
+                }
+                else
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to resign: {response.StatusCode} - {responseContent}");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception occurred: {e.Message}");
+            }
+        }
     }
 
     public static void InitializeClient()

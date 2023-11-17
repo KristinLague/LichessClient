@@ -48,6 +48,23 @@ public partial class Game : UserControl
     private void OnRequestDraw(object sender, RoutedEventArgs e)
     {
         LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,true);
+        DrawButton.IsEnabled = false;
+    }
+    
+    private void OnResign(object sender, RoutedEventArgs e)
+    {
+        ResignPopup.IsOpen = true;
+    }
+    
+    private void CancelResign_Click(object sender, RoutedEventArgs e)
+    {
+        ResignPopup.IsOpen = false;
+    }
+    
+    private void YesResign_Click(object sender, RoutedEventArgs e)
+    {
+        ResignPopup.IsOpen = false;
+        LichessAPIUtils.ResignGame(gameFull.id);
     }
     
     private void AcceptDraw_Click(object sender, RoutedEventArgs e)
