@@ -58,18 +58,18 @@ public partial class ChessBoard : UserControl
             if (isPlayerTurn)
             {
                 var pos = GetKingPosition(fenString, isPlayingWhite);
-                //squares[pos].SetCheck(true);
+                squares[pos].SetCheck(true);
                 lastCheck = squares[pos];
             }
             else
             {
                 var pos = GetKingPosition(fenString, !isPlayingWhite);
-                //squares[pos].SetCheck(true);
+                squares[pos].SetCheck(true);
                 lastCheck = squares[pos];
             }
         }
         
-        //MarkLastMove(gameFull.state.moves);
+        MarkLastMove(gameFull.state.moves);
         
         LichessAPIUtils.OnBoardUpdated += OnBoardUpdated;
         //OnMoveMade += OnSuccessfulMove;
@@ -250,24 +250,55 @@ public partial class ChessBoard : UserControl
         
         //GameClock.Instance.SyncWithServerTime(update.wtime,update.btime,isPlayingWhite, isPlayerTurn);
 
-        //Reset(true);
+        Reset(true);
         if (InCheck(fenString))
         {
             if (isPlayerTurn)
             {
                 var pos = GetKingPosition(fenString, isPlayingWhite);
-                //squares[pos].SetCheck(true);
+                squares[pos].SetCheck(true);
                 lastCheck = squares[pos];
             }
             else
             {
                 var pos = GetKingPosition(fenString, !isPlayingWhite);
-                //squares[pos].SetCheck(true);
+                squares[pos].SetCheck(true);
                 lastCheck = squares[pos];
             }
         }
 
-        //MarkLastMove(update.moves);
+        MarkLastMove(update.moves);
+    }
+    
+    private void MarkLastMove(string moves)
+    {
+        if (moves == "")
+        {
+            return;
+        }
+        
+        var totalMoves = moves.Split(' ');
+        Console.WriteLine(totalMoves.Length + "lenght");
+        if (totalMoves.Length > 0)
+        {
+            var lastMove = totalMoves[totalMoves.Length - 1];
+            
+            if (lastStartMove != null)
+            {
+                Console.WriteLine("what");
+                lastStartMove.SetLastMove(false);
+            }
+
+            if(lastEndMove != null)
+                lastEndMove.SetLastMove(false);
+                
+            var from = lastMove.Substring(0, 2);
+            var to = lastMove.Substring(2, 2);
+            squares[from].SetLastMove(true);
+            lastStartMove = squares[from];
+            squares[to].SetLastMove(true);
+            lastEndMove = squares[to];
+        }
     }
 
     private bool IsPlayerTurn(string moves)

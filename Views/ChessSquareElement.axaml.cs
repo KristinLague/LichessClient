@@ -102,7 +102,7 @@ public partial class ChessSquareElement : UserControl
     {
         if (lastMove)
         {
-            SquareBorder.Background = new SolidColorBrush(currentColor == Color.light ? new Avalonia.Media.Color(255,110,244,0) : new Avalonia.Media.Color(255,31,90,0));
+            SquareBorder.Background = new SolidColorBrush(currentColor == Color.dark ? new Avalonia.Media.Color(255,110,244,0) : new Avalonia.Media.Color(255,31,90,0));
         }
         else
         {
