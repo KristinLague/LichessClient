@@ -7,16 +7,44 @@
              x:Class="LichessClient.Views.Game">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <!-- For "Back" button -->
+            <RowDefinition Height="Auto"/> <!-- Opponent's panel -->
+            <RowDefinition Height="*"/>   <!-- Chessboard -->
+            <RowDefinition Height="Auto"/> <!-- Player's panel -->
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>    <!-- Chessboard and player/opponent details -->
+            <ColumnDefinition Width="Auto"/> <!-- Action buttons -->
         </Grid.ColumnDefinitions>
-            <views:ChessBoard x:Name="ActiveBoard" Grid.Row="1" Grid.Column="1" Width="500" Height="500"/>
+
+        <!-- "Back" Button -->
+        <Button x:Name="BackButton" Content="Back" HorizontalAlignment="Left" Margin="10" Width="100" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0"/>
+
+        <!-- Opponent's Panel -->
+        <Border x:Name="OpponentPanel" Grid.Row="1" Grid.Column="0" BorderThickness="2">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock x:Name="OpponentName" Text="Opponent Name" Margin="10" FontSize="20"/>
+                <TextBlock x:Name="OpponentClock" Text="00:00" Margin="10" FontSize="20"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ChessBoard -->
+        <views:ChessBoard x:Name="ActiveBoard" Grid.Row="2" Grid.Column="0" Width="500" Height="500"/>
+
+        <!-- Player's Panel -->
+        <Border x:Name="PlayerPanel" Grid.Row="3" Grid.Column="0" BorderThickness="2">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <TextBlock x:Name="PlayerName" Text="Player Name" Margin="10" FontSize="20"/>
+                <TextBlock x:Name="PlayerClock" Text="00:00" Margin="10" FontSize="20"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="1" Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button x:Name="DrawButton" Content="Offer Draw" Margin="5" Width="100" Background="LightGreen"/>
+            <Button x:Name="TakebackButton" Content="Request Takeback" Margin="5" Width="100" Background="LightBlue"/>
+            <Button x:Name="ResignButton" Content="Resign" Margin="5" Width="100" Background="LightCoral"/>
+        </StackPanel>
     </Grid>
 </UserControl>

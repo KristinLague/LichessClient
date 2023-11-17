@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -21,8 +19,8 @@ public class LichessAPIUtils
     public static Action<GameState>? OnBoardUpdated;
     public static Action<GameState>? OnGameOver;
     
-    private const int DelayOnError = 5000; // 5 seconds delay on error
-    private const int DelayOnRateLimit = 60000; // 60 seconds delay on rate limit hit
+    private const int DelayOnError = 5000;
+    private const int DelayOnRateLimit = 60000; 
     
     public static string Username { get; private set; }
 
@@ -108,10 +106,8 @@ public class LichessAPIUtils
         using (var client = new HttpClient())
         {
             client.Timeout = TimeSpan.FromMinutes(2f);
-            // Set the authorization header with the bearer token
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
-
-            // Construct the request URI
+            
             string uri = $"https://lichess.org/api/board/game/{gameId}/move/{move}";
 
             try
