@@ -14,15 +14,15 @@ public class LichessAPIUtils
 {
     private static readonly HttpClient client = new HttpClient();
     private const string k_authBearer = "Bearer";
-    
+
     public static Action<GameFull>? OnGameStarted;
     public static Action<GameState>? OnBoardUpdated;
     public static Action<GameState>? OnGameOver;
     public static Action<GameState>? OnDrawOffered;
-    
+
     private const int DelayOnError = 5000;
-    private const int DelayOnRateLimit = 60000; 
-    
+    private const int DelayOnRateLimit = 60000;
+
     public static string Username { get; private set; }
 
     public static async void TryGetProfile(Action<Profile> onSuccess)
@@ -101,14 +101,15 @@ public class LichessAPIUtils
             Console.WriteLine($"General exception: {e.Message}");
         }
     }
-    
+
     public static async Task MakeMove(string gameId, string move)
     {
         using (var client = new HttpClient())
         {
             client.Timeout = TimeSpan.FromMinutes(2f);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
-            
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+
             string uri = $"https://lichess.org/api/board/game/{gameId}/move/{move}";
 
             try
@@ -132,14 +133,15 @@ public class LichessAPIUtils
             }
         }
     }
-    
+
     public static async Task HandleDrawOfferAsync(string gameId, bool accept)
     {
         using (var client = new HttpClient())
         {
             client.Timeout = TimeSpan.FromMinutes(2f);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
-            
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+
             string uri = $"https://lichess.org/api/board/game/{gameId}/draw/{(accept ? "yes" : "no")}";
 
             try
@@ -169,10 +171,11 @@ public class LichessAPIUtils
         using (var client = new HttpClient())
         {
             client.Timeout = TimeSpan.FromMinutes(2f);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
-            
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+
             string uri = $"https://lichess.org/api/board/game/{gameId}/resign";
-            
+
             try
             {
                 // Send a POST request to the URI
@@ -198,9 +201,10 @@ public class LichessAPIUtils
     public static void InitializeClient()
     {
         client.Timeout = TimeSpan.FromMinutes(2f);
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
     }
-
+    
     public static async Task EventStreamAsync(CancellationToken ct)
     {
         HttpClient eventClient = new HttpClient();
@@ -227,13 +231,25 @@ public class LichessAPIUtils
                     while (!reader.EndOfStream)
                     {
                         ct.ThrowIfCancellationRequested();
+
                         string line = await reader.ReadLineAsync();
-                        Console.ForegroundColor = ConsoleColor.Magenta;
-                        Console.WriteLine("EVENT: " + line);
-                        Console.ResetColor();
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            Console.ForegroundColor = ConsoleColor.Magenta;
+                            Console.WriteLine("EVENT: " + line);
+                            Console.ResetColor();
+                        });
+
+                        // Add any additional processing for each line here, similar to RequestGameStreamAsync
+                        // For example, you might check the content of the line and handle different event types
                     }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Event stream was cancelled.");
+            throw;
         }
         catch (Exception e)
         {
@@ -241,6 +257,7 @@ public class LichessAPIUtils
             await Task.Delay(DelayOnError);
         }
     }
+
 
 
     public static async Task RequestStreamAsync(string gameId, CancellationToken ct)

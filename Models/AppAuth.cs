@@ -4,7 +4,7 @@ namespace LichessClient.Models;
 
 public abstract class AppAuth
 {
-    public const string clientId = "dini_chess";
+    public const string clientId = "chess-dinikowski";
     public const string scope = "preference:read preference:write email:read challenge:read challenge:write challenge:bulk study:read study:write tournament:write racer:write team:read team:write team:lead follow:read follow:write msg:write board:play bot:play";
     public const string redirectUri = "http://localhost:8080/lichess/oauth2/";
     public const string authorizationEndpoint = "https://lichess.org/oauth/";
