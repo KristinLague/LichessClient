@@ -25,7 +25,6 @@ public partial class ChessBoard : UserControl
     private ChessSquareElement[] lastLegalMoves;
     private ChessSquareElement lastStartMove;
     private ChessSquareElement lastEndMove;
-
     
     public ChessBoard()
     {
@@ -72,7 +71,6 @@ public partial class ChessBoard : UserControl
         MarkLastMove(gameFull.state.moves);
         
         LichessAPIUtils.OnBoardUpdated += OnBoardUpdated;
-        //OnMoveMade += OnSuccessfulMove;
         LichessAPIUtils.OnGameOver += OnGameOver;
     }
 
@@ -113,14 +111,14 @@ public partial class ChessBoard : UserControl
                         if (selectedSquare.CurrentPiece == ChessSquareElement.Piece.pawn)
                         {
                             Console.WriteLine("promotion");
-                            //TODO: Show promotion dialog
-                            //AppController.Instance.OnMove(currentGameId, selectedSquare.Coordinate, square.Coordinate,OnMoveMade, true);
+                            //TODO: Show promotion dialog for now force to queen
+                            LichessAPIUtils.MakeMove(currentGameId, selectedSquare.Coordinate + square.Coordinate + "Q");
                             return;
                         }
                     }
                     
                     //TODO: Make move
-                    //AppController.Instance.OnMove(currentGameId, selectedSquare.Coordinate, square.Coordinate, OnMoveMade);
+                    LichessAPIUtils.MakeMove(currentGameId, selectedSquare.Coordinate + square.Coordinate);
                 }
                 else
                 {

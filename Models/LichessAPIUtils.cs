@@ -102,6 +102,39 @@ public class LichessAPIUtils
             Console.WriteLine($"General exception: {e.Message}");
         }
     }
+    
+    public static async Task MakeMove(string gameId, string move)
+    {
+        using (var client = new HttpClient())
+        {
+            client.Timeout = TimeSpan.FromMinutes(2f);
+            // Set the authorization header with the bearer token
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", KeychainHelper.GetTokenFromKeychain());
+
+            // Construct the request URI
+            string uri = $"https://lichess.org/api/board/game/{gameId}/move/{move}";
+
+            try
+            {
+                // Send a POST request to the URI
+                HttpResponseMessage response = await client.PostAsync(uri, null);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Move {move} made successfully in game {gameId}.");
+                }
+                else
+                {
+                    string responseContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Failed to make move: {response.StatusCode} - {responseContent}");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception occurred: {e.Message}");
+            }
+        }
+    }
 
     public static void InitializeClient()
     {
