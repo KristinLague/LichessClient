@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using LichessClient.Views;
 
 namespace LichessClient.Models;
 
@@ -17,6 +18,7 @@ public class AppController
     private CancellationTokenSource gameCancellationTokenSource;
     
     public bool HasActiveGame { get; private set; }
+    public AppStates lastAppState;
     public GameFull lastGameFull { get; private set; }
     
     private AppController()
@@ -47,6 +49,19 @@ public class AppController
     {
         CurrenAppState = newState;
         OnAppStateChanged?.Invoke(this, CurrenAppState);
+    }
+
+    public void ReturnToHome()
+    {
+        if (CurrenAppState == AppStates.Game)
+        {
+            if (lastGameFull != null)
+            {
+                OnGameEnded(null);
+            }
+        }
+        
+        SetAppState(AppStates.Home);
     }
 
     public void PlayGame(string id)

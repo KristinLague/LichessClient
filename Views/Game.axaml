@@ -19,7 +19,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- "Back" Button -->
-        <Button x:Name="BackButton" Content="Back" HorizontalAlignment="Left" Margin="10" Width="100" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0"/>
+        <Button x:Name="BackButton" Content="Back" HorizontalAlignment="Left" Margin="10" Width="100" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0" Click="OnBack_Click"/>
 
         <!-- Opponent's Panel -->
         <Border x:Name="OpponentPanel" Grid.Row="1" Grid.Column="0" BorderThickness="2">

@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LichessClient.Models;
@@ -56,6 +58,12 @@ public partial class Game : UserControl
         ResignPopup.IsOpen = true;
     }
     
+    private void OnBack_Click(object sender, RoutedEventArgs e)
+    {
+        AppController.Instance.ReturnToHome();
+        
+    }
+    
     private void CancelResign_Click(object sender, RoutedEventArgs e)
     {
         ResignPopup.IsOpen = false;
@@ -105,6 +113,7 @@ public partial class Game : UserControl
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
+        Console.WriteLine("Disposal of Game");
         gameClock.OnTimePlayer -= OnTimePlayer;
         gameClock.OnTimeOpponent -= OnTimeOpponent;
         gameClock.Dispose();
