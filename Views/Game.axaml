@@ -7,84 +7,73 @@
              x:Class="LichessClient.Views.Game">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/> <!-- For "Back" button -->
-            <RowDefinition Height="Auto"/> <!-- Opponent's panel -->
-            <RowDefinition Height="*"/>   <!-- Chessboard -->
-            <RowDefinition Height="Auto"/> <!-- Player's panel -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>  
+            <RowDefinition Height="Auto"/> 
         </Grid.RowDefinitions>
 
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>    <!-- Chessboard and player/opponent details -->
-            <ColumnDefinition Width="Auto"/> <!-- Action buttons -->
+            <ColumnDefinition Width="*"/>   
+            <ColumnDefinition Width="Auto"/> 
         </Grid.ColumnDefinitions>
-
-        <!-- "Back" Button -->
-        <Button x:Name="BackButton" Content="Back" HorizontalAlignment="Left" Margin="10" Width="100" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0" Click="OnBack_Click"/>
-
-        <!-- Opponent's Panel -->
+        
+        <Button x:Name="BackButton" Content="Back" HorizontalAlignment="Left" Margin="10" Width="100" VerticalAlignment="Top" Grid.Row="0" Grid.Column="0" Click="Back_Click"/>
+        
         <Border x:Name="OpponentPanel" Grid.Row="1" Grid.Column="0" BorderThickness="2">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <TextBlock x:Name="OpponentName" Text="Opponent Name" Margin="10" FontSize="20"/>
                 <TextBlock x:Name="OpponentClock" Text="00:00" Margin="10" FontSize="20"/>
             </StackPanel>
         </Border>
-
-        <!-- ChessBoard -->
+        
         <views:ChessBoard x:Name="ActiveBoard" Grid.Row="2" Grid.Column="0" Width="500" Height="500"/>
-
-        <!-- Player's Panel -->
+        
         <Border x:Name="PlayerPanel" Grid.Row="3" Grid.Column="0" BorderThickness="2">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <TextBlock x:Name="PlayerName" Text="Player Name" Margin="10" FontSize="20"/>
                 <TextBlock x:Name="PlayerClock" Text="00:00" Margin="10" FontSize="20"/>
             </StackPanel>
         </Border>
-
-        <!-- Action Buttons -->
+        
         <StackPanel Grid.Row="1" Grid.Column="1" Grid.RowSpan="3" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button x:Name="DrawButton" Content="Offer Draw" Margin="5" Width="100" Background="LightGreen" Click="OnRequestDraw"/>
-            <Button x:Name="ResignButton" Content="Resign" Margin="5" Width="100" Background="LightCoral" Click="OnResign"/>
+            <Button x:Name="DrawButton" Content="Offer Draw" Margin="5" Width="100" Background="LightGreen" Click="RequestDraw_Click"/>
+            <Button x:Name="ResignButton" Content="Resign" Margin="5" Width="100" Background="LightCoral" Click="Resign_Click"/>
         </StackPanel>
         
-        <!-- Popup for Draw Offer -->
         <Popup x:Name="DrawOfferPopup" IsOpen="False" Placement="Center">
             <Border Width="400" Height="220" Background="White" Padding="20" CornerRadius="5" BorderBrush="Gray" BorderThickness="2">
                 <StackPanel VerticalAlignment="Center">
-                    <!-- Popup Title -->
                     <TextBlock Text="Draw Request" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-
-                    <!-- Description Text -->
                     <TextBlock Text="Your opponent offers a draw. Do you accept?" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-
-                    <!-- Buttons Container -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                        <!-- Accept Button -->
-                        <Button Content="Accept" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Background="Red" Foreground="White" Click="AcceptDraw_Click"/>
-
-                        <!-- Decline Button -->
-                        <Button Content="Decline" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Click="DeclineDraw_Click"/>
+                        <Button Content="Accept" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="20" Background="Red" Foreground="White" Click="AcceptDraw_Click"/>
+                        <Button Content="Decline" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="20" Click="DeclineDraw_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
         </Popup>
         
-        <!-- Popup for Resign -->
         <Popup x:Name="ResignPopup" IsOpen="False" Placement="Center">
             <Border Width="400" Height="220" Background="White" Padding="20" CornerRadius="5" BorderBrush="Gray" BorderThickness="2">
                 <StackPanel VerticalAlignment="Center">
-                    <!-- Popup Title -->
                     <TextBlock Text="Resign" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-
-                    <!-- Description Text -->
                     <TextBlock Text="Are you sure you want to resign?" HorizontalAlignment="Center" Margin="0,0,0,20"/>
-
-                    <!-- Buttons Container -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-                        <!-- Accept Button -->
-                        <Button Content="Yes" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Background="Red" Foreground="White" Click="YesResign_Click"/>
-
-                        <!-- Decline Button -->
-                        <Button Content="Cancel" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="40" Click="CancelResign_Click"/>
+                        <Button Content="Yes" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="25" Background="Red" Foreground="White" Click="YesResign_Click"/>
+                        <Button Content="Cancel" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="25" Click="CancelResign_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Popup>
+        
+        <Popup x:Name="GameOverPopup" IsOpen="False" Placement="Center">
+            <Border Width="400" Height="220" Background="White" Padding="20" CornerRadius="5" BorderBrush="Gray" BorderThickness="2">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Game Over" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <TextBlock x:Name="GameOverText" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
+                        <Button Content="Return to Home" HorizontalContentAlignment="Center" Margin="10" Width="120" Height="25" Click="Back_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

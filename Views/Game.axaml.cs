@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LichessClient.Models;
@@ -8,22 +7,24 @@ namespace LichessClient.Views;
 
 public partial class Game : UserControl
 {
-    private GameClock gameClock;
-    private GameFull gameFull;
+    private GameClock m_GameClock;
+    private GameFull m_GameFull;
     public Game()
     {
-        gameFull = AppController.Instance.lastGameFull;
+        m_GameFull = AppController.Instance.lastGameFull;
         InitializeComponent();
-        ActiveBoard.OnGameStarted(gameFull);
+        ActiveBoard.OnGameStarted(m_GameFull);
         
         PlayerName.Text = LichessAPIUtils.Username;
-        OpponentName.Text =  IsPlayingWhite ? gameFull.black.name : gameFull.white.name;
-        
+        OpponentName.Text =  IsPlayingWhite ? m_GameFull.black.name : m_GameFull.white.name;
+
         LichessAPIUtils.OnBoardUpdated += OnBoardUpdated;
-        gameClock = new GameClock();
-        gameClock.OnTimePlayer += OnTimePlayer;
-        gameClock.OnTimeOpponent += OnTimeOpponent;
-        gameClock.SyncWithServerTime(gameFull.state.wtime,gameFull.state.btime,IsPlayingWhite,IsPlayerTurn(gameFull.state.moves) );
+        
+        m_GameClock = new GameClock();
+        m_GameClock.OnTimePlayer += OnTimePlayer;
+        m_GameClock.OnTimeOpponent += OnTimeOpponent;
+        m_GameClock.SyncWithServerTime(m_GameFull.state.wtime,m_GameFull.state.btime,IsPlayingWhite,IsPlayerTurn(m_GameFull.state.moves) );
+        
         LichessAPIUtils.OnGameOver += OnGameOver;
         LichessAPIUtils.OnDrawOffered += OnDrawOffered;
     }
@@ -36,34 +37,36 @@ public partial class Game : UserControl
         DrawOfferPopup.IsOpen = true;
     }
 
-    private void OnGameOver(GameState obj)
+    private void OnGameOver(GameState state)
     {
-        gameClock.OnTimePlayer -= OnTimePlayer;
-        gameClock.OnTimeOpponent -= OnTimeOpponent;
+        m_GameClock.OnTimePlayer -= OnTimePlayer;
+        m_GameClock.OnTimeOpponent -= OnTimeOpponent;
+        GameOverText.Text = $"{state.winner} wins!";
+        GameOverPopup.IsOpen = true;
     }
 
     private void OnBoardUpdated(GameState state)
     {
-        if (gameClock == null)
+        if (m_GameClock == null)
         {
             return;
         }
         
-        gameClock.SyncWithServerTime(state.wtime,state.btime,IsPlayingWhite, IsPlayerTurn(state.moves));
+        m_GameClock.SyncWithServerTime(state.wtime,state.btime,IsPlayingWhite, IsPlayerTurn(state.moves));
     }
 
-    private void OnRequestDraw(object sender, RoutedEventArgs e)
+    private void RequestDraw_Click(object sender, RoutedEventArgs e)
     {
-        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,true);
+        LichessAPIUtils.HandleDrawOfferAsync(m_GameFull.id,true);
         DrawButton.IsEnabled = false;
     }
     
-    private void OnResign(object sender, RoutedEventArgs e)
+    private void Resign_Click(object sender, RoutedEventArgs e)
     {
         ResignPopup.IsOpen = true;
     }
     
-    private void OnBack_Click(object sender, RoutedEventArgs e)
+    private void Back_Click(object sender, RoutedEventArgs e)
     {
         AppController.Instance.ReturnToHome();
         
@@ -77,22 +80,22 @@ public partial class Game : UserControl
     private void YesResign_Click(object sender, RoutedEventArgs e)
     {
         ResignPopup.IsOpen = false;
-        LichessAPIUtils.ResignGame(gameFull.id);
+        LichessAPIUtils.ResignGame(m_GameFull.id);
     }
     
     private void AcceptDraw_Click(object sender, RoutedEventArgs e)
     {
-        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,true);
+        LichessAPIUtils.HandleDrawOfferAsync(m_GameFull.id,true);
         DrawOfferPopup.IsOpen = false; // Close the popup
     }
     
     private void DeclineDraw_Click(object sender, RoutedEventArgs e)
     {
-        LichessAPIUtils.HandleDrawOfferAsync(gameFull.id,false);
+        LichessAPIUtils.HandleDrawOfferAsync(m_GameFull.id,false);
         DrawOfferPopup.IsOpen = false; 
     }
 
-    private bool IsPlayingWhite => gameFull.white.name == LichessAPIUtils.Username;
+    private bool IsPlayingWhite => m_GameFull.white.name == LichessAPIUtils.Username;
     
     private bool IsPlayerTurn(string moves)
     {
@@ -119,9 +122,9 @@ public partial class Game : UserControl
     protected override void OnUnloaded(RoutedEventArgs e)
     {
         Console.WriteLine("Disposal of Game");
-        gameClock.OnTimePlayer -= OnTimePlayer;
-        gameClock.OnTimeOpponent -= OnTimeOpponent;
-        gameClock.Dispose();
+        m_GameClock.OnTimePlayer -= OnTimePlayer;
+        m_GameClock.OnTimeOpponent -= OnTimeOpponent;
+        m_GameClock.Dispose();
         base.OnUnloaded(e);
     }
 }
