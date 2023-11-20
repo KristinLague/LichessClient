@@ -44,6 +44,11 @@ public partial class Game : UserControl
 
     private void OnBoardUpdated(GameState state)
     {
+        if (gameClock == null)
+        {
+            return;
+        }
+        
         gameClock.SyncWithServerTime(state.wtime,state.btime,IsPlayingWhite, IsPlayerTurn(state.moves));
     }
 

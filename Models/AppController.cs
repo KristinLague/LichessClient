@@ -71,7 +71,7 @@ public class AppController
         gameCancellationTokenSource = new CancellationTokenSource();
         LichessAPIUtils.OnGameStarted += OnGameStarted;
         
-        Task.Run(() => LichessAPIUtils.RequestStreamAsync(id, gameCancellationTokenSource.Token),
+        Task.Run(() => LichessAPIUtils.GameStreamAsync(id, gameCancellationTokenSource.Token),
             gameCancellationTokenSource.Token);
     }
 

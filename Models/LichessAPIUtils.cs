@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -205,62 +206,124 @@ public class LichessAPIUtils
             new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
     }
     
-    public static async Task EventStreamAsync(CancellationToken ct)
+    public static async Task SeekGameAsync(bool rated, float clockLimit, int increment, CancellationToken ct,Action<bool> onCompletion)
     {
-        HttpClient eventClient = new HttpClient();
-        eventClient.Timeout = TimeSpan.FromMinutes(2f);
-        eventClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
-
-        string uri = "https://lichess.org/api/stream/event";
-        Console.WriteLine("Starting event stream");
-
-        try
+        SeekRequestData requestData = new SeekRequestData
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            using (HttpResponseMessage response = await eventClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
+            rated = rated,
+            time = (int)clockLimit,
+            increment = (int)increment,
+            variant = "standard",
+            color = "random"
+        };
+
+        string json = JsonConvert.SerializeObject(requestData);
+        Console.WriteLine(json);
+
+        using (HttpClient client = new HttpClient())
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            try
             {
+                HttpResponseMessage response = await client.PostAsync("https://lichess.org/api/board/seek", content, ct);
+                string responseContent = await response.Content.ReadAsStringAsync(ct);
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    await HandleErrorResponse(response);
+                    Console.WriteLine($"Error: {response.ReasonPhrase}");
+                    Console.WriteLine(responseContent);
+                    onCompletion?.Invoke(false);
                     return;
                 }
 
-                using (Stream stream = await response.Content.ReadAsStreamAsync())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    while (!reader.EndOfStream)
-                    {
-                        ct.ThrowIfCancellationRequested();
-
-                        string line = await reader.ReadLineAsync();
-                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                        {
-                            Console.ForegroundColor = ConsoleColor.Magenta;
-                            Console.WriteLine("EVENT: " + line);
-                            Console.ResetColor();
-                        });
-
-                        // Add any additional processing for each line here, similar to RequestGameStreamAsync
-                        // For example, you might check the content of the line and handle different event types
-                    }
-                }
+                Console.WriteLine(responseContent);
+                onCompletion?.Invoke(true);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("Event stream was cancelled.");
-            throw;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Error: {e.Message}");
-            await Task.Delay(DelayOnError);
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Request was cancelled.");
+                onCompletion?.Invoke(false);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception: {e.Message}");
+                onCompletion?.Invoke(false);
+            }
         }
     }
 
 
+    
+    public static async Task EventStreamAsync(CancellationToken ct)
+{
+    HttpClient eventClient = new HttpClient();
+    eventClient.Timeout = TimeSpan.FromMinutes(2f);
+    eventClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(k_authBearer, KeychainHelper.GetTokenFromKeychain());
 
-    public static async Task RequestStreamAsync(string gameId, CancellationToken ct)
+    string uri = "https://lichess.org/api/stream/event";
+    Console.WriteLine("Starting event stream");
+
+    try
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, uri);
+        using (HttpResponseMessage response = await eventClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct))
+        {
+            Console.WriteLine($"Response Status: {response.StatusCode}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                await HandleErrorResponse(response);
+                return;
+            }
+
+            using (Stream stream = await response.Content.ReadAsStreamAsync())
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                while (!reader.EndOfStream)
+                {
+                    ct.ThrowIfCancellationRequested();
+
+                    string line = await reader.ReadLineAsync();
+                    if (line == null)
+                    {
+                        Console.WriteLine("Reached end of stream or stream temporarily empty.");
+                        continue;
+                    }
+
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        Console.WriteLine("EVENT: " + line);
+                        Console.ResetColor();
+                    });
+                }
+            }
+        }
+    }
+    catch (OperationCanceledException oce)
+    {
+        Console.WriteLine($"Event stream was cancelled: {oce.Message}");
+        throw;
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine($"Error occurred: {e.Message}");
+        if (e.InnerException != null)
+        {
+            Console.WriteLine($"Inner exception: {e.InnerException.Message}");
+        }
+        await Task.Delay(DelayOnError);
+    }
+}
+
+
+
+
+    public static async Task GameStreamAsync(string gameId, CancellationToken ct)
     {
         HttpClient requestClient = new HttpClient();
         requestClient.Timeout = TimeSpan.FromMinutes(2f);
@@ -368,6 +431,14 @@ public class LichessAPIUtils
     }
 }
 
+public class SeekRequestData
+{
+    public bool rated;
+    public int time;
+    public int increment;
+    public string variant;
+    public string color;
+}
 
 [Serializable]
 public struct Profile
