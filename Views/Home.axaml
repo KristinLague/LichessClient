@@ -24,18 +24,16 @@
         <!-- Outlined square with buttons -->
         <Border Grid.Row="1" Grid.Column="0" BorderBrush="Black" BorderThickness="2" CornerRadius="5" Padding="10" Margin="10">
             <StackPanel Orientation="Vertical">
-                <Button x:Name="Button100" Content="10 + 0" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_10_0_Click"/>
-                <Button x:Name="Button3Min" Content="10 + 5" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                <Button x:Name="Button5Min" Content="15 + 10" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                <Button x:Name="Button10Min" Content="30 + 0" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-                <Button x:Name="Button15Min" Content="30 + 20" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                <Button x:Name="Button100" Content="10+0" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_10_0_Click"/>
+                <Button x:Name="Button105" Content="10+5" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_10_5_Click"/>
+                <Button x:Name="Button1510" Content="15+10" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_15_10_Click"/>
+                <Button x:Name="Button300" Content="30+0" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_30_0_Click"/>
+                <Button x:Name="Button3020" Content="30+20" Margin="5" Width="100" Height="50" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="On_30_20_Click"/>
             </StackPanel>
         </Border>
 
-        <!-- Border for displaying current games as chessboards -->
         <Border x:Name="RecentGames" Grid.Row="1" Grid.Column="1" BorderBrush="Gray" BorderThickness="2" CornerRadius="5" Padding="10" Margin="10">
-            <Grid x:Name="ChessBoardsContainer" Grid.Row="1" Grid.Column="1" Margin="10">
-                <!-- Rows and Columns will be added dynamically in code-behind -->
+            <Grid x:Name="ChessBoardsContainer" HorizontalAlignment="Center" VerticalAlignment="Center">
             </Grid>
         </Border>
     </Grid>

@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using Chess.Core;
 using LichessClient.Models;
 using GameState = LichessClient.Models.GameState;
@@ -37,16 +34,10 @@ public partial class ChessBoard : UserControl
     public void OnGameStarted(GameFull gameFull)
     {
         currentGameId = gameFull.id;
-        //tab.label = gameFull.white.name + " vs " + gameFull.black.name;
         isPlayingWhite = gameFull.white.name == LichessAPIUtils.Username;
         SetupBoard(isPlayingWhite);
         fenString = gameFull.initialFen;
-        //SetupPlayers(gameFull);
         isPlayerTurn = IsPlayerTurn(gameFull.state.moves);
-        //opponentClockElement.AddToClassList(isPlayerTurn ? "background__primary" : "background__accent");
-        //opponentClockElement.RemoveFromClassList(isPlayerTurn ? "background__accent" : "background__primary");
-        //playerClockElement.AddToClassList(isPlayerTurn ? "background__accent" : "background__primary");
-        //playerClockElement.RemoveFromClassList(isPlayerTurn ? "background__primary" : "background__accent");
         
         RefreshBoard(gameFull.state.moves);
         
@@ -74,7 +65,6 @@ public partial class ChessBoard : UserControl
 
     private void OnGameOver(GameState obj)
     {
-        //throw new NotImplementedException();
         Console.WriteLine("On Game Over");
     }
     

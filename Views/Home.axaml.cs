@@ -1,7 +1,5 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LichessClient.Models;
@@ -34,54 +32,56 @@ public partial class Home : UserControl
     
     private void AddChessBoards(ActiveGame[] games)
     {
-        int maxColumns = games.Length > 1 ? 3 : 1; // Use 1 column if only one game
-        int requiredRows = (int)Math.Ceiling((double)games.Length / maxColumns);
-
-        // Clear existing definitions and chessboards
-        ChessBoardsContainer.RowDefinitions.Clear();
-        ChessBoardsContainer.ColumnDefinitions.Clear();
         ChessBoardsContainer.Children.Clear();
 
-        // Dynamically add rows and columns to the grid
-        for (int i = 0; i < requiredRows; i++)
+        if (games.Length == 0)
         {
-            ChessBoardsContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        }
-        for (int i = 0; i < maxColumns; i++)
-        {
-            ChessBoardsContainer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var noGamesText = new TextBlock
+            {
+                Text = "No active games",
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+            ChessBoardsContainer.Children.Add(noGamesText);
+            return;
         }
 
-        // Calculate the maximum size that a chessboard can be, based on container size and number of rows/columns
-        // Wait for the container to be properly sized - this might need to be adjusted based on your layout logic
-        Size containerSize = ChessBoardsContainer.Bounds.Size;
-        double maxBoardWidth = containerSize.Width / maxColumns;
-        double maxBoardHeight = containerSize.Height / requiredRows;
-        double boardSize = Math.Min(maxBoardWidth, maxBoardHeight);
+        // Using StackPanel for single column, switch to WrapPanel for multiple columns
+        var panel = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Vertical,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+        };
 
-        // Add chessboards to the grid
-        for (int i = 0; i < games.Length; i++)
+        foreach (var game in games)
         {
             var chessBoard = new ChessBoardPreview();
-            Console.WriteLine(games[i].fen);
-            chessBoard.SetAsPreviewBoard(games[i].fullId, games[i].fen, games[i].color == "white");
-            chessBoard.SetOpponentName(games[i].opponent.username);
-            chessBoard.Width = boardSize;
-            chessBoard.Height = boardSize;
+            chessBoard.SetAsPreviewBoard(game.fullId, game.fen, game.color == "white");
+            chessBoard.SetOpponentName(game.opponent.username);
+            panel.Children.Add(chessBoard);
+        }
 
-            // Center the chessboard in its grid cell
-            chessBoard.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
-            chessBoard.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        ChessBoardsContainer.Children.Add(panel);
+        
+        
+    }
+    
+    private void ToggleButtonStates(bool enable, Button sender)
+    {
+        Button100.IsEnabled = enable;
+        Button105.IsEnabled = enable;
+        Button1510.IsEnabled = enable;
+        Button300.IsEnabled = enable;
+        Button3020.IsEnabled = enable;
 
-            int row = i / maxColumns;
-            int col = i % maxColumns;
-            Grid.SetRow(chessBoard, row);
-            Grid.SetColumn(chessBoard, col);
-            ChessBoardsContainer.Children.Add(chessBoard);
+        if (!enable)
+        {
+            (sender).IsEnabled = true;
         }
     }
 
-    private void On_10_0_Click(object sender, RoutedEventArgs e)
+    private void SeekViaButton(Button button, int time, int increment, string buttonText)
     {
         // If a seek is already in progress, cancel it
         if (seekCancellationTokenSource != null)
@@ -89,35 +89,60 @@ public partial class Home : UserControl
             Console.WriteLine("Cancelling the ongoing game seek...");
             seekCancellationTokenSource.Cancel();
             seekCancellationTokenSource = null;
-            Button100.Content = "10+0";
+            button.Content = buttonText;
             return;
         }
 
-        Button100.Content = "Cancel";
+        button.Content = "Cancel";
+        ToggleButtonStates(false, button);
         seekCancellationTokenSource = new CancellationTokenSource();
-        LichessAPIUtils.SeekGameAsync(true, 10, 0, seekCancellationTokenSource.Token, success =>
+        LichessAPIUtils.SeekGameAsync(true, time, increment, seekCancellationTokenSource.Token, success =>
         {
             if (success)
             {
                 Console.WriteLine("Game seeking successful");
-                Button100.Content = "10+0";
+                button.Content = buttonText;
                 LichessAPIUtils.TryGetGames(activeGames =>
-                 {
-                 AddChessBoards(activeGames.nowPlaying);
-                 });
+                {
+                    AddChessBoards(activeGames.nowPlaying);
+                });
+                ToggleButtonStates(true,button);
             }
             else
             {
                 Console.WriteLine("Game seeking failed or was cancelled");
-                Button100.Content = "10+0";
-                // Additional logic on failure
+                button.Content = buttonText;
+                ToggleButtonStates(true,button);
             }
 
-            // After completion or cancellation, reset the CancellationTokenSource
+            
             seekCancellationTokenSource = null;
         });
     }
 
 
-
+    private void On_10_0_Click(object sender, RoutedEventArgs e)
+    {
+        SeekViaButton(Button100,10,0,"10+0");
+    }
+    
+    private void On_10_5_Click(object sender, RoutedEventArgs e)
+    {
+        SeekViaButton(Button105,10,5,"10+5");
+    }
+    
+    private void On_15_10_Click(object sender, RoutedEventArgs e)
+    {
+        SeekViaButton(Button1510,15,10,"15+10");
+    }
+    
+    private void On_30_0_Click(object sender, RoutedEventArgs e)
+    {
+        SeekViaButton(Button300,30,0,"30+0");
+    }
+    
+    private void On_30_20_Click(object sender, RoutedEventArgs e)
+    {
+        SeekViaButton(Button3020,30,20,"30+20");
+    }
 }
