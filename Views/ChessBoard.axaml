@@ -5,7 +5,6 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="800"
              x:Class="LichessClient.Views.ChessBoard">
     <Grid x:Name="ChessBoardGrid">
-        <!-- Define 8 rows and 8 columns -->
         <Grid.RowDefinitions>
             <RowDefinition Height="1*"/>
             <RowDefinition Height="1*"/>
@@ -26,7 +25,5 @@
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-
-        <!-- Chess squares will be added here in code-behind -->
     </Grid>
 </UserControl>

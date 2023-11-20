@@ -4,158 +4,143 @@ using System.Linq;
 using Avalonia.Controls;
 using Chess.Core;
 using LichessClient.Models;
-using GameState = LichessClient.Models.GameState;
+using LichessClient.Models.ChessEngine;
+using GameState = LichessClient.Models.ChessEngine.GameState;
 
 namespace LichessClient.Views;
 
 public partial class ChessBoard : UserControl
 {
-    private List<ChessSquareElement> boardElements = new List<ChessSquareElement>();
-    public Dictionary<string,ChessSquareElement> squares = new Dictionary<string, ChessSquareElement>();
-    private bool isPlayingWhite;
-    private string fenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    private List<ChessSquareElement> m_BoardElements = new List<ChessSquareElement>();
+    private Dictionary<string,ChessSquareElement> m_Squares = new Dictionary<string, ChessSquareElement>();
+    
+    private string m_FenString = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-    private string currentGameId;
-    private bool isPlayerTurn;
-    private ChessSquareElement lastCheck;
-    private ChessSquareElement selectedSquare;
-    private ChessSquareElement[] lastLegalMoves;
-    private ChessSquareElement lastStartMove;
-    private ChessSquareElement lastEndMove;
+    private string m_CurrentGameId;
+    
+    private bool m_IsPlayingWhite;
+    private bool m_IsPlayerTurn;
+    
+    private ChessSquareElement m_LastCheck;
+    private ChessSquareElement m_SelectedSquare;
+    private ChessSquareElement[] m_LastLegalMove;
+    private ChessSquareElement m_LastStartMove;
+    private ChessSquareElement m_LastEndMove;
     
     public ChessBoard()
     {
         InitializeComponent();
         PopulateBoard();
-        SetupBoard(isPlayingWhite);
+        SetupBoard(m_IsPlayingWhite);
         RefreshBoard("");
     }
 
     public void OnGameStarted(GameFull gameFull)
     {
-        currentGameId = gameFull.id;
-        isPlayingWhite = gameFull.white.name == LichessAPIUtils.Username;
-        SetupBoard(isPlayingWhite);
-        fenString = gameFull.initialFen;
-        isPlayerTurn = IsPlayerTurn(gameFull.state.moves);
+        m_CurrentGameId = gameFull.id;
+        m_IsPlayingWhite = gameFull.white.name == LichessAPIUtils.Instance.Username;
+        SetupBoard(m_IsPlayingWhite);
+        m_FenString = gameFull.initialFen;
+        m_IsPlayerTurn = IsPlayerTurn(gameFull.state.moves);
         
         RefreshBoard(gameFull.state.moves);
         
-        if (InCheck(fenString))
+        if (InCheck(m_FenString))
         {
-            if (isPlayerTurn)
+            if (m_IsPlayerTurn)
             {
-                var pos = GetKingPosition(fenString, isPlayingWhite);
-                squares[pos].SetCheck(true);
-                lastCheck = squares[pos];
+                var pos = GetKingPosition(m_FenString, m_IsPlayingWhite);
+                m_Squares[pos].SetCheck(true);
+                m_LastCheck = m_Squares[pos];
             }
             else
             {
-                var pos = GetKingPosition(fenString, !isPlayingWhite);
-                squares[pos].SetCheck(true);
-                lastCheck = squares[pos];
+                var pos = GetKingPosition(m_FenString, !m_IsPlayingWhite);
+                m_Squares[pos].SetCheck(true);
+                m_LastCheck = m_Squares[pos];
             }
         }
         
         MarkLastMove(gameFull.state.moves);
         
         LichessAPIUtils.OnBoardUpdated += OnBoardUpdated;
-        LichessAPIUtils.OnGameOver += OnGameOver;
-    }
-
-    private void OnGameOver(GameState obj)
-    {
-        Console.WriteLine("On Game Over");
     }
     
     private void OnSquareSelected(ChessSquareElement square)
     {
         Console.WriteLine(square.Coordinate);
-        if (!isPlayerTurn)
+        if (!m_IsPlayerTurn)
         {
-            Console.WriteLine("not player turn ");
-            //Reset selection
             Reset(false);
             return;
         }
 
-        if (selectedSquare != null)
+        if (m_SelectedSquare != null)
         {
-            if (selectedSquare == square)
+            if (m_SelectedSquare == square)
             {
-                Console.WriteLine("same square");
-                //Reset
                 Reset(false);
                 return;
             }
 
-            if (lastLegalMoves != null)
+            if (m_LastLegalMove != null)
             {
 
-                if (lastLegalMoves.Contains(square))
+                if (m_LastLegalMove.Contains(square))
                 {
-                    if(isPlayingWhite && square.Coordinate.Contains("8") || !isPlayingWhite && square.Coordinate.Contains("1"))
+                    if(m_IsPlayingWhite && square.Coordinate.Contains("8") || !m_IsPlayingWhite && square.Coordinate.Contains("1"))
                     {
-                        if (selectedSquare.CurrentPiece == ChessSquareElement.Piece.pawn)
+                        if (m_SelectedSquare.CurrentPiece == ChessSquareElement.Piece.pawn)
                         {
                             Console.WriteLine("promotion");
                             //TODO: Show promotion dialog for now force to queen
-                            LichessAPIUtils.MakeMove(currentGameId, selectedSquare.Coordinate + square.Coordinate + "Q");
+                            LichessAPIUtils.Instance.MakeMove(m_CurrentGameId, m_SelectedSquare.Coordinate + square.Coordinate + "Q");
                             return;
                         }
                     }
                     
-                    //TODO: Make move
-                    LichessAPIUtils.MakeMove(currentGameId, selectedSquare.Coordinate + square.Coordinate);
+                    LichessAPIUtils.Instance.MakeMove(m_CurrentGameId, m_SelectedSquare.Coordinate + square.Coordinate);
                 }
                 else
                 {
-                    if (square.PieceColor == ChessSquareElement.Color.light && isPlayingWhite ||
-                        square.PieceColor == ChessSquareElement.Color.dark && !isPlayingWhite)
+                    if (square.PieceColor == ChessSquareElement.Color.light && m_IsPlayingWhite ||
+                        square.PieceColor == ChessSquareElement.Color.dark && !m_IsPlayingWhite)
                     {
-                        //Reset
+              
                         Reset(false);
                         
-                        selectedSquare = square;
-                        selectedSquare.SetSelected(true);
+                        m_SelectedSquare = square;
+                        m_SelectedSquare.SetSelected(true);
                     
-                        var legalMoves = GetLegalTargetMoveSquares(selectedSquare.Coordinate, fenString);
-                        Console.WriteLine(legalMoves.Length + " legal moves " + selectedSquare.Coordinate);
-                        lastLegalMoves = new ChessSquareElement[legalMoves.Length];
+                        var legalMoves = GetLegalTargetMoveSquares(m_SelectedSquare.Coordinate, m_FenString);
+                        m_LastLegalMove = new ChessSquareElement[legalMoves.Length];
                         for (int i = 0; i < legalMoves.Length; i++)
                         {
-                            lastLegalMoves[i] = squares[legalMoves[i]];
-                            lastLegalMoves[i].SetMarker(true);
+                            m_LastLegalMove[i] = m_Squares[legalMoves[i]];
+                            m_LastLegalMove[i].SetMarker(true);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("not legal move");
-                        //Reset
                         Reset(false);
                     }
                 }
             }
-            else
-            {
-                Console.WriteLine("last legal moves null");
-            }
         }
         else
         {
-            if (square.PieceColor == ChessSquareElement.Color.light && isPlayingWhite ||
-                square.PieceColor == ChessSquareElement.Color.dark && !isPlayingWhite)
+            if (square.PieceColor == ChessSquareElement.Color.light && m_IsPlayingWhite ||
+                square.PieceColor == ChessSquareElement.Color.dark && !m_IsPlayingWhite)
             {
-                selectedSquare = square;
-                selectedSquare.SetSelected(true);
+                m_SelectedSquare = square;
+                m_SelectedSquare.SetSelected(true);
                     
-                var legalMoves = GetLegalTargetMoveSquares(selectedSquare.Coordinate, fenString);
-                Console.WriteLine(fenString + " " + legalMoves.Length + " legal moves " + selectedSquare.Coordinate);
-                lastLegalMoves = new ChessSquareElement[legalMoves.Length];
+                var legalMoves = GetLegalTargetMoveSquares(m_SelectedSquare.Coordinate, m_FenString);
+                m_LastLegalMove = new ChessSquareElement[legalMoves.Length];
                 for (int i = 0; i < legalMoves.Length; i++)
                 {
-                    lastLegalMoves[i] = squares[legalMoves[i]];
-                    lastLegalMoves[i].SetMarker(true);
+                    m_LastLegalMove[i] = m_Squares[legalMoves[i]];
+                    m_LastLegalMove[i].SetMarker(true);
                 }
             }
         }
@@ -163,44 +148,44 @@ public partial class ChessBoard : UserControl
     
     private void Reset(bool force)
     {
-        if (selectedSquare != null)
+        if (m_SelectedSquare != null)
         {
-            selectedSquare.SetSelected(false);
-            selectedSquare = null;
+            m_SelectedSquare.SetSelected(false);
+            m_SelectedSquare = null;
         }
 
-        if (lastLegalMoves != null)
+        if (m_LastLegalMove != null)
         {
-            foreach (var move in lastLegalMoves)
+            foreach (var move in m_LastLegalMove)
             {
                 move.SetMarker(false);
             }
-            lastLegalMoves = null;
+            m_LastLegalMove = null;
         }
 
         if (force)
         {
-            if (lastCheck != null)
+            if (m_LastCheck != null)
             {
-                lastCheck.SetCheck(false);
-                lastCheck = null;
+                m_LastCheck.SetCheck(false);
+                m_LastCheck = null;
             }
         
-            if(lastStartMove != null)
+            if(m_LastStartMove != null)
             {
-                lastStartMove.SetLastMove(false);
-                lastStartMove = null;
+                m_LastStartMove.SetLastMove(false);
+                m_LastStartMove = null;
             }
         
-            if(lastEndMove != null)
+            if(m_LastEndMove != null)
             {
-                lastEndMove.SetLastMove(false);
-                lastEndMove = null;
+                m_LastEndMove.SetLastMove(false);
+                m_LastEndMove = null;
             }
         }
     }
-    
-    public string[] GetLegalTargetMoveSquares(string startSquareName, string fen)
+
+    private string[] GetLegalTargetMoveSquares(string startSquareName, string fen)
     {
         Board board = new Board();
         board.LoadPosition(fen);
@@ -210,8 +195,6 @@ public partial class ChessBoard : UserControl
         int startSquareIndex = BoardHelper.SquareIndexFromName(startSquareName);
         List<string> targetSquareNames = new List<string>();
         
-        Console.WriteLine("Total legal moves " + moves.Length);
-        Console.WriteLine("Filter: " + startSquareName + " " + startSquareIndex);
         foreach (Move move in moves)
         {
             if (move.StartSquare == startSquareIndex)
@@ -219,7 +202,6 @@ public partial class ChessBoard : UserControl
                 targetSquareNames.Add(BoardHelper.SquareNameFromIndex(move.TargetSquare));
             }
         }
-        Console.WriteLine("Num filtered: " + targetSquareNames.Count);
         
         return targetSquareNames.ToArray();
     }
@@ -227,29 +209,22 @@ public partial class ChessBoard : UserControl
     private void OnBoardUpdated(GameState update)
     {
         RefreshBoard(update.moves);
-        isPlayerTurn = IsPlayerTurn(update.moves);
-        
-        //opponentClockElement.AddToClassList(isPlayerTurn ? "background__primary" : "background__accent");
-        //opponentClockElement.RemoveFromClassList(isPlayerTurn ? "background__accent" : "background__primary");
-        //playerClockElement.AddToClassList(isPlayerTurn ? "background__accent" : "background__primary");
-        //playerClockElement.RemoveFromClassList(isPlayerTurn ? "background__primary" : "background__accent");
-        
-        //GameClock.Instance.SyncWithServerTime(update.wtime,update.btime,isPlayingWhite, isPlayerTurn);
+        m_IsPlayerTurn = IsPlayerTurn(update.moves);
 
         Reset(true);
-        if (InCheck(fenString))
+        if (InCheck(m_FenString))
         {
-            if (isPlayerTurn)
+            if (m_IsPlayerTurn)
             {
-                var pos = GetKingPosition(fenString, isPlayingWhite);
-                squares[pos].SetCheck(true);
-                lastCheck = squares[pos];
+                var pos = GetKingPosition(m_FenString, m_IsPlayingWhite);
+                m_Squares[pos].SetCheck(true);
+                m_LastCheck = m_Squares[pos];
             }
             else
             {
-                var pos = GetKingPosition(fenString, !isPlayingWhite);
-                squares[pos].SetCheck(true);
-                lastCheck = squares[pos];
+                var pos = GetKingPosition(m_FenString, !m_IsPlayingWhite);
+                m_Squares[pos].SetCheck(true);
+                m_LastCheck = m_Squares[pos];
             }
         }
 
@@ -264,26 +239,24 @@ public partial class ChessBoard : UserControl
         }
         
         var totalMoves = moves.Split(' ');
-        Console.WriteLine(totalMoves.Length + "lenght");
         if (totalMoves.Length > 0)
         {
             var lastMove = totalMoves[totalMoves.Length - 1];
             
-            if (lastStartMove != null)
+            if (m_LastStartMove != null)
             {
-                Console.WriteLine("what");
-                lastStartMove.SetLastMove(false);
+                m_LastStartMove.SetLastMove(false);
             }
 
-            if(lastEndMove != null)
-                lastEndMove.SetLastMove(false);
+            if(m_LastEndMove != null)
+                m_LastEndMove.SetLastMove(false);
                 
             var from = lastMove.Substring(0, 2);
             var to = lastMove.Substring(2, 2);
-            squares[from].SetLastMove(true);
-            lastStartMove = squares[from];
-            squares[to].SetLastMove(true);
-            lastEndMove = squares[to];
+            m_Squares[from].SetLastMove(true);
+            m_LastStartMove = m_Squares[from];
+            m_Squares[to].SetLastMove(true);
+            m_LastEndMove = m_Squares[to];
         }
     }
 
@@ -291,12 +264,12 @@ public partial class ChessBoard : UserControl
     {
         if (moves == "")
         {
-            return isPlayingWhite;
+            return m_IsPlayingWhite;
         }
         
         string[] totalMoves = moves.Split(' ');
-        return (isPlayingWhite && totalMoves.Length % 2 == 0) ||
-               (!isPlayingWhite && totalMoves.Length % 2 == 1);
+        return (m_IsPlayingWhite && totalMoves.Length % 2 == 0) ||
+               (!m_IsPlayingWhite && totalMoves.Length % 2 == 1);
     }
     
     bool InCheck(string fen)
@@ -305,8 +278,8 @@ public partial class ChessBoard : UserControl
         board.LoadPosition(fen);
         return board.IsInCheck();
     }
-    
-    public string GetKingPosition(string fen, bool isWhite)
+
+    private string GetKingPosition(string fen, bool isWhite)
     {
         return FindKingPosition(fen, isWhite ? 'K' : 'k');
     }
@@ -339,33 +312,23 @@ public partial class ChessBoard : UserControl
         return null;
     }
 
-    public void SetupGame(string fen, bool isWhite)
-    {
-        isPlayingWhite = isWhite;
-        fenString = fen;
-        PopulateBoard();
-        SetupBoard(isPlayingWhite);
-        SetupBoardFromFEN(fenString);
-    }
-
     private void RefreshBoard(string moves)
     {
         if (moves == "")
         {
-            fenString = GetFENFromMoves(Array.Empty<string>());
-            SetupBoardFromFEN(fenString);
+            m_FenString = GetFENFromMoves(Array.Empty<string>());
+            SetupBoardFromFEN(m_FenString);
         }
         else
         {
             string[] individualMoves = moves.Split(' ');
-            fenString = GetFENFromMoves(individualMoves);
-            SetupBoardFromFEN(fenString);
+            m_FenString = GetFENFromMoves(individualMoves);
+            SetupBoardFromFEN(m_FenString);
         }
     }
 
     private void SetupBoardFromFEN(string fen)
     {
-        Console.WriteLine("setup " + fen);
         ClearBoard();
         string boardFen = fen.Split(' ')[0];
         string[] rows = boardFen.Split('/');
@@ -384,9 +347,9 @@ public partial class ChessBoard : UserControl
                 else
                 {
                     string coordinate = $"{(char)('a' + file)}{rank}";
-                    if (squares.ContainsKey(coordinate))
+                    if (m_Squares.ContainsKey(coordinate))
                     {
-                        ChessSquareElement square = squares[coordinate];
+                        ChessSquareElement square = m_Squares[coordinate];
                         LogPieceInfo(square, character);
                     }
                     else
@@ -414,15 +377,15 @@ public partial class ChessBoard : UserControl
     
     private void ClearBoardVisualElements()
     {
-        squares.Clear();
-        squares = new Dictionary<string, ChessSquareElement>();
+        m_Squares.Clear();
+        m_Squares = new Dictionary<string, ChessSquareElement>();
     }
 
-    public void SetupBoard(bool white)
+    private void SetupBoard(bool white)
     {
         ClearBoardVisualElements();
-        isPlayingWhite = white;
-        if (isPlayingWhite)
+        m_IsPlayingWhite = white;
+        if (m_IsPlayingWhite)
         {
             SetupBoardForWhite();
         }
@@ -431,7 +394,7 @@ public partial class ChessBoard : UserControl
             SetupBoardForBlack();
         }
         SetupSquareColorByCoordinate();
-        SetupBoardFromFEN(fenString);
+        SetupBoardFromFEN(m_FenString);
     }
 
     private void SetupBoardForWhite()
@@ -443,9 +406,9 @@ public partial class ChessBoard : UserControl
             for (int x = 0; x < 8; x++)
             {
                 string coordinate = $"{(char)(x + 97)}{8 - y}";
-                ChessSquareElement square = boardElements[i];
+                ChessSquareElement square = m_BoardElements[i];
                 square.Coordinate = coordinate;
-                squares.Add(coordinate, square);
+                m_Squares.Add(coordinate, square);
                 i++;
             }
         }
@@ -460,9 +423,9 @@ public partial class ChessBoard : UserControl
             for (int x = 0; x < 8; x++)
             {
                 string coordinate = $"{(char)(104 - x)}{1 + y}";
-                ChessSquareElement square = boardElements[i];
+                ChessSquareElement square = m_BoardElements[i];
                 square.Coordinate = coordinate;
-                squares.Add(coordinate, square);
+                m_Squares.Add(coordinate, square);
                 i++;
             }
         }
@@ -470,7 +433,7 @@ public partial class ChessBoard : UserControl
 
     private void SetupSquareColorByCoordinate()
     {
-        foreach (var kvp in squares)
+        foreach (var kvp in m_Squares)
         {
             int x = kvp.Key[0] - 'a'; // this will give a value from 0 to 7
             int y = kvp.Key[1] - '1'; // this will give a value from 0 to 7
@@ -485,9 +448,6 @@ public partial class ChessBoard : UserControl
             }
         }
     }
-
-
-
     
     private void LogPieceInfo(ChessSquareElement element,char fenChar)
     {
@@ -525,7 +485,7 @@ public partial class ChessBoard : UserControl
     
     private void ClearBoard()
     {
-        foreach (var kvp in squares)
+        foreach (var kvp in m_Squares)
         {
             kvp.Value.CurrentPiece = ChessSquareElement.Piece.none;
         }
@@ -547,7 +507,7 @@ public partial class ChessBoard : UserControl
                 ChessBoardGrid.Children.Add(chessSquare);
                 Grid.SetRow(chessSquare, row);
                 Grid.SetColumn(chessSquare, col);
-                boardElements.Add(chessSquare);
+                m_BoardElements.Add(chessSquare);
             }
         }
     }

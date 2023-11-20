@@ -5,57 +5,58 @@ namespace LichessClient.Models;
 
 public class GameClock
 {
-    public bool IsPlayingWhite { get; set; }
-    public bool IsPlayerTurn { get; set; }
+    private bool m_IsPlayingWhite { get; set; }
+    private bool m_IsPlayerTurn { get; set; }
 
-    private TimeSpan whiteTime;
-    private TimeSpan blackTime;
+    private TimeSpan m_WhiteTime;
+    private TimeSpan m_BlackTime;
 
-    private Timer timer;
-    private readonly int updateInterval = 1000; 
+    private Timer m_Timer;
 
     public Action<string> OnTimePlayer;
     public Action<string> OnTimeOpponent;
+    
+    private const int k_UpdateInterval = 1000; 
 
-    public GameClock()
+    public void Reset()
     {
-        timer = new Timer(TimerCallback, null, Timeout.Infinite, updateInterval);
+        m_Timer = new Timer(TimerCallback, null, Timeout.Infinite, k_UpdateInterval);
     }
 
     public void SyncWithServerTime(long newWhiteTimeMs, long newBlackTimeMs, bool isPlayingWhite, bool isPlayerTurn)
     {
-        IsPlayingWhite = isPlayingWhite;
-        IsPlayerTurn = isPlayerTurn;
-        whiteTime = TimeSpan.FromMilliseconds(newWhiteTimeMs);
-        blackTime = TimeSpan.FromMilliseconds(newBlackTimeMs);
+        m_IsPlayingWhite = isPlayingWhite;
+        m_IsPlayerTurn = isPlayerTurn;
+        m_WhiteTime = TimeSpan.FromMilliseconds(newWhiteTimeMs);
+        m_BlackTime = TimeSpan.FromMilliseconds(newBlackTimeMs);
 
-        timer.Change(0, updateInterval);
+        m_Timer?.Change(0, k_UpdateInterval);
 
         UpdateDisplay();
     }
 
     private void TimerCallback(object state)
     {
-        if (IsPlayerTurn)
+        if (m_IsPlayerTurn)
         {
-            if (IsPlayingWhite)
+            if (m_IsPlayingWhite)
             {
-                whiteTime = DecreaseTime(whiteTime);
+                m_WhiteTime = DecreaseTime(m_WhiteTime);
             }
             else
             {
-                blackTime = DecreaseTime(blackTime);
+                m_BlackTime = DecreaseTime(m_BlackTime);
             }
         }
         else
         {
-            if (IsPlayingWhite)
+            if (m_IsPlayingWhite)
             {
-                blackTime = DecreaseTime(blackTime);
+                m_BlackTime = DecreaseTime(m_BlackTime);
             }
             else
             {
-                whiteTime = DecreaseTime(whiteTime);
+                m_WhiteTime = DecreaseTime(m_WhiteTime);
             }
         }
 
@@ -66,8 +67,8 @@ public class GameClock
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            OnTimePlayer?.Invoke(FormatTime(IsPlayingWhite ? whiteTime : blackTime));
-            OnTimeOpponent?.Invoke(FormatTime(IsPlayingWhite ? blackTime : whiteTime));
+            OnTimePlayer?.Invoke(FormatTime(m_IsPlayingWhite ? m_WhiteTime : m_BlackTime));
+            OnTimeOpponent?.Invoke(FormatTime(m_IsPlayingWhite ? m_BlackTime : m_WhiteTime));
         });
     }
     
@@ -83,6 +84,6 @@ public class GameClock
     
     public void Dispose()
     {
-        timer?.Dispose();
+        m_Timer?.Dispose();
     }
 }

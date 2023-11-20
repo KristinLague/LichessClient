@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using IdentityModel;
 using IdentityModel.Client;
+using LichessClient.Models.ChessEngine;
 using Newtonsoft.Json;
 
 namespace LichessClient.Models;
@@ -42,13 +43,13 @@ public class AuthorizationProcess
         var challengeBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(s_codeVerifier));
         s_codeChallenge = Base64Url.Encode(challengeBytes);
         
-        var requestUrl = new RequestUrl(AppAuth.authorizationEndpoint).CreateAuthorizeUrl(
+        var requestUrl = new RequestUrl(AppAuth.k_AuthorizationEndpoint).CreateAuthorizeUrl(
             responseType: "code",
-            clientId: AppAuth.clientId,
-            redirectUri: AppAuth.redirectUri,
+            clientId: AppAuth.k_ClientId,
+            redirectUri: AppAuth.k_AuthRedirectUri,
             codeChallengeMethod: "S256", 
             codeChallenge: s_codeChallenge,
-            scope: AppAuth.scope
+            scope: AppAuth.k_Scope
         );
         
         Process.Start(new ProcessStartInfo(requestUrl) { UseShellExecute = true });
@@ -58,17 +59,14 @@ public class AuthorizationProcess
     private async void ListenForOAuthRedirect()
     {
         var listener = new HttpListener();
-        listener.Prefixes.Add(AppAuth.redirectUri);
+        listener.Prefixes.Add(AppAuth.k_AuthRedirectUri);
         try
         {
-            Console.WriteLine($"Listening for OAuth redirect at: {AppAuth.redirectUri}");
             listener.Start();
 
             var context = await listener.GetContextAsync();
             var code = context.Request.QueryString.Get("code");
-            Console.WriteLine($"Received authorization code: {code}");
-
-            // Send a response to the browser
+            
             var response = context.Response;
             string responseString = "<html><body>You can return to the app.</body></html>";
             var buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
@@ -80,7 +78,6 @@ public class AuthorizationProcess
             if (!string.IsNullOrEmpty(code))
             {
                 var tokenResponse = await ExchangeAuthorizationCodeForToken(code);
-                //Store token using KeyChain on MacOS
                 //TODO: Add support for Windows and Linux to store tokens
                 KeychainHelper.AddTokenToKeychain(tokenResponse.access_token);
                 AuthCompleted(true);
@@ -106,13 +103,13 @@ public class AuthorizationProcess
                 new KeyValuePair<string, string>("grant_type", "authorization_code"),
                 new KeyValuePair<string, string>("code", authorizationCode),
                 new KeyValuePair<string, string>("code_verifier", s_codeVerifier),
-                new KeyValuePair<string, string>("redirect_uri", AppAuth.redirectUri),
-                new KeyValuePair<string, string>("client_id", AppAuth.clientId)
+                new KeyValuePair<string, string>("redirect_uri", AppAuth.k_AuthRedirectUri),
+                new KeyValuePair<string, string>("client_id", AppAuth.k_ClientId)
             });
 
             try
             {
-                var response = await client.PostAsync(AppAuth.tokenEndpoint, requestContent);
+                var response = await client.PostAsync(AppAuth.k_TokenEndpoint, requestContent);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (!response.IsSuccessStatusCode)
@@ -126,7 +123,7 @@ public class AuthorizationProcess
             catch (Exception ex)
             {
                 Console.WriteLine($"Exception during token exchange: {ex.Message}");
-                return null; // or handle the exception appropriately
+                return null; 
             }
         }
     }

@@ -3,22 +3,23 @@ using System.Threading;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LichessClient.Models;
+using LichessClient.Models.ChessEngine;
 
 namespace LichessClient.Views;
 
 public partial class Home : UserControl
 {
-    private CancellationTokenSource seekCancellationTokenSource;
+    private CancellationTokenSource m_SeekCancellationToken;
     public Home()
     {
         InitializeComponent();
-        LichessAPIUtils.TryGetProfile(profile =>
+        LichessAPIUtils.Instance.TryGetProfile(profile =>
         {
             SetUserName(profile.username);
             Console.WriteLine(profile.username);
         });
         
-        LichessAPIUtils.TryGetGames(activeGames =>
+        LichessAPIUtils.Instance.TryGetGames(activeGames =>
         {
             AddChessBoards(activeGames.nowPlaying);
         });
@@ -45,8 +46,7 @@ public partial class Home : UserControl
             ChessBoardsContainer.Children.Add(noGamesText);
             return;
         }
-
-        // Using StackPanel for single column, switch to WrapPanel for multiple columns
+        
         var panel = new StackPanel
         {
             Orientation = Avalonia.Layout.Orientation.Vertical,
@@ -63,8 +63,6 @@ public partial class Home : UserControl
         }
 
         ChessBoardsContainer.Children.Add(panel);
-        
-        
     }
     
     private void ToggleButtonStates(bool enable, Button sender)
@@ -83,26 +81,23 @@ public partial class Home : UserControl
 
     private void SeekViaButton(Button button, int time, int increment, string buttonText)
     {
-        // If a seek is already in progress, cancel it
-        if (seekCancellationTokenSource != null)
+        if (m_SeekCancellationToken != null)
         {
-            Console.WriteLine("Cancelling the ongoing game seek...");
-            seekCancellationTokenSource.Cancel();
-            seekCancellationTokenSource = null;
+            m_SeekCancellationToken.Cancel();
+            m_SeekCancellationToken = null;
             button.Content = buttonText;
             return;
         }
 
         button.Content = "Cancel";
         ToggleButtonStates(false, button);
-        seekCancellationTokenSource = new CancellationTokenSource();
-        LichessAPIUtils.SeekGameAsync(true, time, increment, seekCancellationTokenSource.Token, success =>
+        m_SeekCancellationToken = new CancellationTokenSource();
+        LichessAPIUtils.Instance.SeekGameAsync(true, time, increment, m_SeekCancellationToken.Token, success =>
         {
             if (success)
             {
-                Console.WriteLine("Game seeking successful");
                 button.Content = buttonText;
-                LichessAPIUtils.TryGetGames(activeGames =>
+                LichessAPIUtils.Instance.TryGetGames(activeGames =>
                 {
                     AddChessBoards(activeGames.nowPlaying);
                 });
@@ -110,13 +105,12 @@ public partial class Home : UserControl
             }
             else
             {
-                Console.WriteLine("Game seeking failed or was cancelled");
                 button.Content = buttonText;
                 ToggleButtonStates(true,button);
             }
 
             
-            seekCancellationTokenSource = null;
+            m_SeekCancellationToken = null;
         });
     }
 

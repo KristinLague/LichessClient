@@ -1,32 +1,30 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using LichessClient.Views;
+using LichessClient.Models.ChessEngine;
 
 namespace LichessClient.Models;
 
 public class AppController
 {
-    private static readonly Lazy<AppController> s_Lazy = new(() => new AppController());
     public static AppController Instance => s_Lazy.Value;
     
-    private readonly AuthorizationProcess authorizationProcess;
     public AppStates CurrenAppState { get; private set; }
     public event EventHandler<AppStates> OnAppStateChanged;
     
-    private readonly CancellationTokenSource eventStreamCancellationTokenSource = new();
-    private CancellationTokenSource gameCancellationTokenSource;
+    public GameFull LastGameFull { get; private set; }
     
-    public bool HasActiveGame { get; private set; }
-    public AppStates lastAppState;
-    public GameFull lastGameFull { get; private set; }
+    private readonly AuthorizationProcess m_AuthorizationProcess;
+    
+    private CancellationTokenSource m_EventStreamCancellationTokenSource;
+    private CancellationTokenSource m_GameCancellationTokenSource;
+    private static readonly Lazy<AppController> s_Lazy = new(() => new AppController());
     
     private AppController()
     {
-        LichessAPIUtils.InitializeClient();
-        authorizationProcess = new AuthorizationProcess();
+        m_AuthorizationProcess = new AuthorizationProcess();
         OnAuthCompleted(this, new AuthEventArgs(AuthorizationProcess.HasToken()));
-        authorizationProcess.OnAuthCompleted += OnAuthCompleted;
+        m_AuthorizationProcess.OnAuthCompleted += OnAuthCompleted;
     }
 
     private void OnAuthCompleted(object sender, AuthEventArgs e)
@@ -34,14 +32,14 @@ public class AppController
         SetAppState(e.IsSuccessful ? AppStates.Home : AppStates.Authorization);
         LichessAPIUtils.OnGameOver += OnGameEnded;
         
-        //Subscribe to EventStream
-        Task.Run(() => LichessAPIUtils.EventStreamAsync(eventStreamCancellationTokenSource.Token), eventStreamCancellationTokenSource.Token);
+        m_EventStreamCancellationTokenSource?.Cancel();
+        m_EventStreamCancellationTokenSource = new CancellationTokenSource();
+        Task.Run(() => LichessAPIUtils.Instance.EventStreamAsync(m_EventStreamCancellationTokenSource.Token), m_EventStreamCancellationTokenSource.Token);
     }
 
     private void OnGameEnded(GameState game)
     {
-        HasActiveGame = false;
-        gameCancellationTokenSource?.Cancel();
+        m_GameCancellationTokenSource?.Cancel();
         LichessAPIUtils.OnGameStarted -= OnGameStarted;
     }
     
@@ -55,7 +53,7 @@ public class AppController
     {
         if (CurrenAppState == AppStates.Game)
         {
-            if (lastGameFull != null)
+            if (LastGameFull != null)
             {
                 OnGameEnded(null);
             }
@@ -66,32 +64,29 @@ public class AppController
 
     public void PlayGame(string id)
     {
-        HasActiveGame = true;
-        gameCancellationTokenSource?.Cancel();
-        gameCancellationTokenSource = new CancellationTokenSource();
+        m_GameCancellationTokenSource?.Cancel();
+        m_GameCancellationTokenSource = new CancellationTokenSource();
         LichessAPIUtils.OnGameStarted += OnGameStarted;
         
-        Task.Run(() => LichessAPIUtils.GameStreamAsync(id, gameCancellationTokenSource.Token),
-            gameCancellationTokenSource.Token);
+        Task.Run(() => LichessAPIUtils.Instance.GameStreamAsync(id, m_GameCancellationTokenSource.Token),
+            m_GameCancellationTokenSource.Token);
     }
 
     private void OnGameStarted(GameFull game)
     {
-        Console.WriteLine("Game started");
-        lastGameFull = game;
+        LastGameFull = game;
         SetAppState(AppStates.Game);
     }
 
-
     public void StartAuthentication()
     {
-        authorizationProcess.StartAuthentication();
+        m_AuthorizationProcess.StartAuthentication();
     }
 
     public void Dispose()
     {
-        eventStreamCancellationTokenSource.Cancel(true);
-        gameCancellationTokenSource?.Cancel(true);
+        m_EventStreamCancellationTokenSource?.Cancel(true);
+        m_GameCancellationTokenSource?.Cancel(true);
     }
 }
 

@@ -32,7 +32,6 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
-        Console.WriteLine("Closing");
         AppController.Instance.OnAppStateChanged -= OnAppStateChanged;
         AppController.Instance.Dispose();
         base.OnClosed(e);
